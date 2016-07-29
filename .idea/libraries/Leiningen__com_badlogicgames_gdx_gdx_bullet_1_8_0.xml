@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="Leiningen: com.badlogicgames.gdx/gdx-bullet:1.8.0">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.m2/repository/com/badlogicgames/gdx/gdx-bullet/1.8.0/gdx-bullet-1.8.0.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

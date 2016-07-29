@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="Leiningen: org.jcraft/jorbis:0.0.17">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.m2/repository/org/jcraft/jorbis/0.0.17/jorbis-0.0.17.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

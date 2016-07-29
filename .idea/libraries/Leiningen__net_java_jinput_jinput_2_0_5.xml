@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="Leiningen: net.java.jinput/jinput:2.0.5">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.m2/repository/net/java/jinput/jinput/2.0.5/jinput-2.0.5.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

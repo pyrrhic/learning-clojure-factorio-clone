@@ -1,0 +1,54 @@
+
+s.png
+format: RGBA8888
+filter: Nearest,Nearest
+repeat: none
+potato-farm-green
+  rotate: false
+  xy: 1, 69
+  size: 160, 160
+  orig: 160, 160
+  offset: 0, 0
+  index: -1
+potato-farm-red
+  rotate: false
+  xy: 163, 69
+  size: 160, 160
+  orig: 160, 160
+  offset: 0, 0
+  index: -1
+potato-farm
+  rotate: false
+  xy: 325, 69
+  size: 160, 160
+  orig: 160, 160
+  offset: 0, 0
+  index: -1
+grass-1
+  rotate: false
+  xy: 1, 35
+  size: 32, 32
+  orig: 32, 32
+  offset: 0, 0
+  index: -1
+potato-plant-1
+  rotate: false
+  xy: 1, 1
+  size: 32, 32
+  orig: 32, 32
+  offset: 0, 0
+  index: -1
+potato-plant-2
+  rotate: false
+  xy: 35, 35
+  size: 32, 32
+  orig: 32, 32
+  offset: 0, 0
+  index: -1
+potato-plant-3
+  rotate: false
+  xy: 35, 1
+  size: 32, 32
+  orig: 32, 32
+  offset: 0, 0
+  index: -1

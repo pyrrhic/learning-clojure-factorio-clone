@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="Leiningen: org.lwjgl.lwjgl/lwjgl:2.9.2">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.m2/repository/org/lwjgl/lwjgl/lwjgl/2.9.2/lwjgl-2.9.2.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

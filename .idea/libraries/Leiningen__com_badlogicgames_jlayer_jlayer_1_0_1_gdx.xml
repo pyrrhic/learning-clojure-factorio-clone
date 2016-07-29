@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="Leiningen: com.badlogicgames.jlayer/jlayer:1.0.1-gdx">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.m2/repository/com/badlogicgames/jlayer/jlayer/1.0.1-gdx/jlayer-1.0.1-gdx.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
