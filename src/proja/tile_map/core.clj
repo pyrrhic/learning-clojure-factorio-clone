@@ -1,4 +1,5 @@
-(ns proja.tile-map.core)
+(ns proja.tile-map.core
+  (require [proja.utils :as utils]))
 
 (defn- create-tile
   [x y texture]
@@ -87,14 +88,6 @@
      (get-sw-neighbor x y grid)
      (get-se-neighbor x y grid))))
 
-(def tile-size 32)
-
-(defn world-coord->grid [n]
-  (/ n tile-size))
-
-(defn grid->world-coord [n]
-  (float (* n tile-size)))
-
 (defn draw-grid [grid batch]
 	(loop [g grid]
 	 (if (= (count g) 0)
@@ -104,7 +97,7 @@
 	     (doall (map 
 	             (fn [tile]
 	              (let [{x :grid-x, y :grid-y, t :texture} tile]
-                 (.draw batch t (grid->world-coord x) (grid->world-coord y))))
+                 (.draw batch t (utils/grid->world x) (utils/grid->world y))))
 	             (first g)))
       (.end batch)
 	     (recur (rest g))))))
