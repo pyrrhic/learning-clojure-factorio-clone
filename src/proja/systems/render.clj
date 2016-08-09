@@ -1,48 +1,24 @@
 (ns proja.systems.render
-  (:import (com.badlogic.gdx.graphics.g2d SpriteBatch TextureRegion))
+  (:import (com.badlogic.gdx.graphics.g2d TextureRegion))
   (:require [proja.ecs.core :as ecs]))
 
-;(defn run-for-all [{{ents :entities} :ecs ^SpriteBatch batch :batch cam :camera}]
-;  (let [qualifying-ents (filterv #(and (:renderable %) (:transform %)) ents)]
-;    (.setProjectionMatrix batch (.combined cam))
-;    (.begin batch)
-;    ;this loop isn't really any faster than using map. the slow part is the actual drawing done by libgdx/opengl
-;    (loop [q-ents qualifying-ents]
-;      (if (empty? q-ents)
-;        ents
-;        (let [e (first q-ents)
-;              texture-region ^TextureRegion (:texture (:renderable e))
-;              x (float (get-in e [:transform :x]))
-;              y (float (get-in e [:transform :y]))
-;              origin-x (float (get-in e [:transform :origin-x]))
-;              origin-y (float (get-in e [:transform :origin-y]))
-;              ;libgdx draws rotation counter clock wise, and um, i want to keep my code clock wise because it  makes more sense to me.
-;              rotation (* -1.0 (float (get-in e [:transform :rotation])))
-;              width (float (.getRegionWidth texture-region))
-;              height (float (.getRegionHeight texture-region))
-;              scale-x (float (:scale-x (:renderable e)))
-;              scale-y (float(:scale-y (:renderable e)))]
-;          (.draw batch texture-region x y origin-x origin-y width height scale-x scale-y rotation)
-;          (recur (rest q-ents)))))
-;    (.end batch))
-;  ents)
-
-;(defn run* [ent batch]
-;  {:pre [(:transform ent), (:renderable ent)]}
-;  (let [texture-region ^TextureRegion (:texture (:renderable ent))
-;        x (float (get-in ent [:transform :x]))
-;        y (float (get-in ent [:transform :y]))
-;        origin-x (float (get-in ent [:transform :origin-x]))
-;        origin-y (float (get-in ent [:transform :origin-y]))
-;        ;libgdx draws rotation counter clock wise, and um, i want to keep my code clock wise because it  makes more sense to me.
-;        rotation (* -1.0 (float (get-in ent [:transform :rotation])))
-;        width (float (.getRegionWidth texture-region))
-;        height (float (.getRegionHeight texture-region))
-;        scale-x (float (:scale-x (:renderable ent)))
-;        scale-y (float(:scale-y (:renderable ent)))]
-;    (.begin batch)
-;    (.draw batch texture-region x y origin-x origin-y width height scale-x scale-y rotation)
-;    (.end batch)))
+(defn run-single [trans-comp render-comp batch]
+  {:pre [(= (:type trans-comp) :transform),
+         (= (:type render-comp) :renderable)]}
+  (let [texture-region ^TextureRegion (:texture (:data render-comp))
+        x (float (get-in trans-comp [:data :x]))
+        y (float (get-in trans-comp [:data :y]))
+        origin-x (float (get-in trans-comp [:data :origin-x]))
+        origin-y (float (get-in trans-comp [:data :origin-y]))
+        ;libgdx draws rotation counter clock wise, and um, i want to keep my code clock wise because it  makes more sense to me.
+        rotation (* -1.0 (float (get-in trans-comp [:data :rotation])))
+        width (float (.getRegionWidth texture-region))
+        height (float (.getRegionHeight texture-region))
+        scale-x (float (:scale-x (:data render-comp)))
+        scale-y (float(:scale-y (:data render-comp)))]
+    (.begin batch)
+    (.draw batch texture-region x y origin-x origin-y width height scale-x scale-y rotation)
+    (.end batch)))
 
 (defn run [ent-id game]                           ;might need anything. camera, batch, map, later things.
   (let [entity-cs (:ecs game)

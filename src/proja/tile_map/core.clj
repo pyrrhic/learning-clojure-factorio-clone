@@ -32,8 +32,8 @@
   [grid]
   (count (first grid)))
 
-(defn get-tile 
-  [x y grid]
+(defn get-tile [x y grid]
+  {:pre [(some? x) (some? y)]}
   (if (and 
         (< x (get-num-rows grid))
         (>= x 0)

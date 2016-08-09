@@ -103,7 +103,7 @@
                               cost-from-open)
                             cost-from-closed)]
         (cond
-          ;ignore if start node? so start doesn't have parent
+          ;ignore if start node? so start doesn't have parent - wtf is this comment?
           (false?(:passable neighbor-node))
           (recur (rest neighbors)
                  open
@@ -145,7 +145,7 @@
   (loop [open [(assoc start :g 0 :f 0)]
          closed []]
     (if (empty? open)
-      "no path found." ;failed to find a path
+      '() ;failed to find a path
       (let [current-index (get-cheapest-node-indx open)
             current-node (nth open current-index)
             open-without-current (remove-indx open current-index)

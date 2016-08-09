@@ -15,7 +15,9 @@
    ;               :not [c-types]}
    ;  :qualifying-ents, #{entity id's}}}
    ;
-   :systems []})
+   :systems []
+   ;map, keys are the tags, values are Sets of ent-id's
+   :tags {}})
 
 (defn- new-id! [ecs]
   (let [counter (:entity-id-counter ecs)]
@@ -44,13 +46,19 @@
                                 (update s :qualifying-ents #(disj % ent-id))))
                             (get ecs :systems))))
 
+(defn component [ecs c-type ent-id]
+  (get-in ecs [:ent-comps ent-id c-type]))
+
 (defn add-component [ecs c-type c-data ent-id]
-  "Returns an updated ecs"
+  "Returns an updated ecs."
   (-> ecs
       (assoc-in [:ent-comps ent-id c-type] c-data)
       (update-system-ents ent-id)))
 
 ;update-component that only modifys ent-comps, don't need to update the system entities
+(defn update-component [ecs c-type ent-id func]
+  (let [c-data (func (component ecs c-type ent-id))]
+    (assoc-in ecs [:ent-comps ent-id c-type] c-data)))
 
 (defn remove-component [ecs c-type ent-id]
   "Returns an updated ecs"
@@ -58,12 +66,21 @@
       (utils/dissoc-in [:ent-comps ent-id c-type])
       (update-system-ents ent-id)))
 
-(defn component [ecs c-type ent-id]
-  (get-in ecs [:ent-comps ent-id c-type]))
+(defn add-tag [ecs tag ent-id]
+  (update-in ecs [:tags tag] #(if (nil? %)
+                    (conj #{} ent-id)
+                    (conj % ent-id))))
+
+(defn ent-ids-for-tag [ecs tag]
+  "Set of ent-id's for the tag"
+  (get-in ecs [:tags tag]))
+
+(defn create-component [type data]
+  {:type type, :data data})
 
 (defn add-entity
   "@param components should be a vector of {:type component-type, :data component-data}
-  @returns a map with an updated ecs, :ecs and a new entity id, :new-id.
+  @returns a map with an updated ecs, :ecs and a new entity id, :ent-id.
   If no components were provided, the returned ecs will be unmodified."
   ([ecs]
     (add-entity ecs []))
@@ -72,7 +89,7 @@
      (loop [a-ecs ecs
             comps components]
        (if (empty? comps)
-         {:ecs a-ecs, :new-id ent-id}
+         {:ecs a-ecs, :ent-id ent-id}
          (let [c (first comps)]
            (recur (add-component a-ecs (:type c) (:data c) ent-id)
                   (rest comps))))))))
@@ -116,7 +133,7 @@
       (if (empty? sys)
         g
         (recur (rest sys)
-               (run-system (get sys 0) g))))))
+               (run-system (first sys) g))))))
 
 
 

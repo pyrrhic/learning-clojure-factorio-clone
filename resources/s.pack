@@ -3,51 +3,93 @@ s.png
 format: RGBA8888
 filter: Nearest,Nearest
 repeat: none
-potato-farm-green
+warehouse-red
   rotate: false
-  xy: 1, 69
-  size: 160, 160
-  orig: 160, 160
+  xy: 1, 197
+  size: 192, 288
+  orig: 192, 288
+  offset: 0, 0
+  index: -1
+warehouse
+  rotate: false
+  xy: 195, 197
+  size: 192, 288
+  orig: 192, 288
   offset: 0, 0
   index: -1
 potato-farm-red
   rotate: false
-  xy: 163, 69
+  xy: 1, 35
   size: 160, 160
   orig: 160, 160
   offset: 0, 0
   index: -1
 potato-farm
   rotate: false
-  xy: 325, 69
+  xy: 163, 35
   size: 160, 160
   orig: 160, 160
   offset: 0, 0
   index: -1
 grass-1
   rotate: false
-  xy: 1, 35
+  xy: 389, 453
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: -1
-potato-plant-1
+hauler-idle
   rotate: false
   xy: 1, 1
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: -1
-potato-plant-2
+hauler-scan-1
   rotate: false
-  xy: 35, 35
+  xy: 325, 163
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: -1
-potato-plant-3
+hauler-scan-2
+  rotate: false
+  xy: 389, 419
+  size: 32, 32
+  orig: 32, 32
+  offset: 0, 0
+  index: -1
+hauler-scan-3
+  rotate: false
+  xy: 423, 453
+  size: 32, 32
+  orig: 32, 32
+  offset: 0, 0
+  index: -1
+hauler-walk-1
   rotate: false
   xy: 35, 1
+  size: 32, 32
+  orig: 32, 32
+  offset: 0, 0
+  index: -1
+hauler-walk-2
+  rotate: false
+  xy: 325, 129
+  size: 32, 32
+  orig: 32, 32
+  offset: 0, 0
+  index: -1
+road-red
+  rotate: false
+  xy: 389, 385
+  size: 32, 32
+  orig: 32, 32
+  offset: 0, 0
+  index: -1
+road
+  rotate: false
+  xy: 423, 419
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
