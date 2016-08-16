@@ -6,10 +6,10 @@
   {:grid-x x 
    :grid-y y 
    :passable true
-   :parent nil
+   ;:parent nil
    :move-cost 1
-   :g nil
-   :f nil
+   ;:g nil
+   ;:f nil
    :texture texture})
 
 (defn- create-row [row-num num-of-columns tex-cache]

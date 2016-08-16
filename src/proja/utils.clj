@@ -8,6 +8,11 @@
 (defn grid->world [n]
   (float (* n tile-size)))
 
+(defn stop-animation [animation]
+  (-> animation
+      (assoc :current-animation nil)
+      (assoc :current-frame -1)))
+
 (defn dissoc-in
   [m [k & ks :as keys]]
   (if ks

@@ -17,6 +17,13 @@ warehouse
   orig: 192, 288
   offset: 0, 0
   index: -1
+storage
+  rotate: false
+  xy: 389, 229
+  size: 192, 256
+  orig: 192, 256
+  offset: 0, 0
+  index: -1
 potato-farm-red
   rotate: false
   xy: 1, 35
@@ -26,70 +33,161 @@ potato-farm-red
   index: -1
 potato-farm
   rotate: false
-  xy: 163, 35
+  xy: 583, 325
   size: 160, 160
   orig: 160, 160
   offset: 0, 0
   index: -1
-grass-1
+mining-building-1
   rotate: false
-  xy: 389, 453
+  xy: 163, 99
+  size: 96, 96
+  orig: 96, 96
+  offset: 0, 0
+  index: -1
+mining-building-2
+  rotate: false
+  xy: 745, 389
+  size: 96, 96
+  orig: 96, 96
+  offset: 0, 0
+  index: -1
+mining-building-3
+  rotate: false
+  xy: 261, 99
+  size: 96, 96
+  orig: 96, 96
+  offset: 0, 0
+  index: -1
+arm-1
+  rotate: false
+  xy: 843, 389
+  size: 64, 96
+  orig: 64, 96
+  offset: 0, 0
+  index: -1
+arm-2
+  rotate: false
+  xy: 909, 389
+  size: 64, 96
+  orig: 64, 96
+  offset: 0, 0
+  index: -1
+arm-3
+  rotate: false
+  xy: 583, 227
+  size: 64, 96
+  orig: 64, 96
+  offset: 0, 0
+  index: -1
+arm-4
+  rotate: false
+  xy: 649, 227
+  size: 64, 96
+  orig: 64, 96
+  offset: 0, 0
+  index: -1
+arm-5
+  rotate: false
+  xy: 163, 1
+  size: 64, 96
+  orig: 64, 96
+  offset: 0, 0
+  index: -1
+belt-1
+  rotate: false
+  xy: 745, 354
+  size: 32, 33
+  orig: 32, 33
+  offset: 0, 0
+  index: -1
+belt-2
+  rotate: false
+  xy: 975, 453
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: -1
-hauler-idle
+belt-3
   rotate: false
   xy: 1, 1
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: -1
+grass-1
+  rotate: false
+  xy: 229, 65
+  size: 32, 32
+  orig: 32, 32
+  offset: 0, 0
+  index: -1
+hauler-idle
+  rotate: false
+  xy: 779, 355
+  size: 32, 32
+  orig: 32, 32
+  offset: 0, 0
+  index: -1
 hauler-scan-1
   rotate: false
-  xy: 325, 163
+  xy: 975, 419
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: -1
 hauler-scan-2
   rotate: false
-  xy: 389, 419
+  xy: 35, 1
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: -1
 hauler-scan-3
   rotate: false
-  xy: 423, 453
+  xy: 229, 31
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: -1
 hauler-walk-1
   rotate: false
-  xy: 35, 1
+  xy: 263, 65
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: -1
 hauler-walk-2
   rotate: false
-  xy: 325, 129
+  xy: 813, 355
+  size: 32, 32
+  orig: 32, 32
+  offset: 0, 0
+  index: -1
+ore-patch
+  rotate: false
+  xy: 69, 1
+  size: 32, 32
+  orig: 32, 32
+  offset: 0, 0
+  index: -1
+ore-piece
+  rotate: false
+  xy: 263, 31
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: -1
 road-red
   rotate: false
-  xy: 389, 385
+  xy: 297, 65
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: -1
 road
   rotate: false
-  xy: 423, 419
+  xy: 847, 355
   size: 32, 32
   orig: 32, 32
   offset: 0, 0

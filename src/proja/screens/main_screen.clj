@@ -5,15 +5,13 @@
            (com.badlogic.gdx.scenes.scene2d.ui Skin TextButton Table)
            (com.badlogic.gdx.scenes.scene2d Stage)
            (com.badlogic.gdx.utils.viewport ScreenViewport)
-           (com.badlogic.gdx.scenes.scene2d.utils ChangeListener)
-           (com.badlogic.gdx.math Vector3))
+           (com.badlogic.gdx.scenes.scene2d.utils ChangeListener))
   (:require [proja.tile-map.core :as tmap]
-            [proja.components.core :as c]
             [proja.systems.render :as render]
-            [proja.systems.production-building :as prod-building]
-            [proja.ecs.core :as ecs]
-            [proja.entities.core :as e]
-            [proja.utils :as utils]))
+            [proja.systems.animate :as animate]
+            [proja.systems.mine-ore :as mine-ore]
+            [proja.systems.swing-entity :as swing-entity]
+            [proja.ecs.core :as ecs]))
 
 ;http://www.gamefromscratch.com/post/2015/02/03/LibGDX-Video-Tutorial-Scene2D-UI-Widgets-Layout-and-Skins.aspx
 ;http://www.badlogicgames.com/forum/viewtopic.php?f=11&t=8327
@@ -22,7 +20,8 @@
 
 (defn update-game! [func]
   "Expects a function with 1 parameter which will be the game map. The function must return the updated game map."
-  (alter-var-root (var game) #(func %)))
+  (alter-var-root (var game) #(func %))
+  nil)
 
 (defn clear-screen []
   (doto (Gdx/gl)
@@ -82,144 +81,154 @@
           :tex-cache texture-cache
           :inputs {}
           :tile-map (tmap/create-grid 25 19 texture-cache)
+          ;Keys are strings of x grid + y grid, so (str (+ 1 1)).
+          ;Values are Maps, keys are ent 'types' and values are Sets of ent id's
+          :entity-map {}
           ;used for road pathfinding and road placement. dissoc grass for now because we don't need textures.
           ;passable = true means there is a road there.
-          :road-map (mapv (fn [column]
-                            (mapv (fn [tile] (assoc tile :passable false))
-                                  column))
-                          (tmap/create-grid 25 19 (dissoc (:tex-cache game) :grass-1)))
+          ;:road-map (mapv (fn [column]
+          ;                  (mapv (fn [tile] (assoc tile :passable false))
+          ;                        column))
+          ;                (tmap/create-grid 25 19 (dissoc (:tex-cache game) :grass-1)))
           :ecs (-> (ecs/init)
                    (ecs/add-system (render/create))
-                   (ecs/add-system (prod-building/create))
+                   (ecs/add-system (animate/create))
+                   (ecs/add-system (mine-ore/create))
+                   (ecs/add-system (swing-entity/create))
                    )))))
 
-(defn tiles-under [transform-d renderable-d tile-map]
-  "Expects the entity to be grid aligned."
-  (let [w (-> renderable-d :texture (.getRegionWidth) (/ utils/tile-size))
-        h (-> renderable-d :texture (.getRegionHeight) (/ utils/tile-size))
-        x (-> transform-d :x (utils/world->grid))
-        y (-> transform-d :y (utils/world->grid))]
-    (for [row (range x (+ x w))
-          col (range y (+ y h))]
-      (tmap/get-tile row col tile-map))))
+;(update-game! #(assoc-in % [:entity-map (ent-map-key 5 5) :resource] ))
 
-(defn all-passable? [tiles]
-  (every? #(:passable %) tiles))
+(defn ent-map-key [x y]
+  (str x y))
 
-(defn set-passable [tile-map tiles passable?]
-  (loop [tilez tiles
-         tmap tile-map]
-    (if (empty? tilez)
-      tmap
-      (recur (rest tilez)
-             (let [t (first tilez)]
-               (assoc-in tmap [(:grid-x t)
-                               (:grid-y t)
-                               :passable]
-                         passable?))))))
+;(defn tiles-under [transform-d renderable-d tile-map]
+;  "Expects the entity to be grid aligned."
+;  (let [w (-> renderable-d :texture (.getRegionWidth) (/ utils/tile-size))
+;        h (-> renderable-d :texture (.getRegionHeight) (/ utils/tile-size))
+;        x (-> transform-d :x (utils/world->grid))
+;        y (-> transform-d :y (utils/world->grid))]
+;    (for [row (range x (+ x w))
+;          col (range y (+ y h))]
+;      (tmap/get-tile row col tile-map))))
 
-(defn roadless? [tiles]
-  (not-any? #(:passable %) tiles))
+;(defn all-passable? [tiles]
+;  (every? #(:passable %) tiles))
+;
+;(defn set-passable [tile-map tiles passable?]
+;  (loop [tilez tiles
+;         tmap tile-map]
+;    (if (empty? tilez)
+;      tmap
+;      (recur (rest tilez)
+;             (let [t (first tilez)]
+;               (assoc-in tmap [(:grid-x t)
+;                               (:grid-y t)
+;                               :passable]
+;                         passable?))))))
 
-(defn placeable? [tiles-under road-tiles-under]
-  (and (all-passable? tiles-under)
-       (roadless? road-tiles-under)))
+;(defn roadless? [tiles]
+;  (not-any? #(:passable %) tiles))
 
-(defn build-warehouse [game]
-  (let [pf-tex (-> game :tex-cache :warehouse)
-        mx (-> game :inputs :mouse-x)
-        my (-> game :inputs :mouse-y)
-        world-v3 (-> (:camera game) (.unproject (Vector3. mx my 0)))
-        tile-align-x (-> (quot (.-x world-v3) utils/tile-size) (* utils/tile-size))
-        tile-align-y (-> (quot (.-y world-v3) utils/tile-size) (* utils/tile-size))
-        transform-c (c/transform tile-align-x tile-align-y 0 0 0)
-        renderable-c (c/renderable pf-tex)
-        tiles-under-wh (tiles-under (:data transform-c) (:data renderable-c) (:tile-map game))
-        road-tiles-under (tiles-under (:data transform-c) (:data renderable-c) (:road-map game))
-        placement? (placeable? tiles-under-wh road-tiles-under)]
-    (if placement?
-      (render/run-single transform-c
-                         renderable-c
-                         (:batch game))
-      (render/run-single transform-c
-                         (assoc-in renderable-c [:data :texture] (-> game :tex-cache :warehouse-red))
-                         (:batch game)))
+;(defn placeable? [tiles-under road-tiles-under]
+;  (and (all-passable? tiles-under)
+;       (roadless? road-tiles-under)))
 
-    (let [click-x (-> game :inputs :mouse-click-x)
-          click-y (-> game :inputs :mouse-click-y)]
-      (if (and click-x click-y placement?)
-        (let [wh-added-g (assoc game :ecs (e/warehouse (:ecs game)
-                                                         (:tex-cache game)
-                                                         tile-align-x
-                                                         tile-align-y))]
-          (assoc wh-added-g :tile-map (set-passable (:tile-map wh-added-g) tiles-under-wh false)))
-        game))))
+;(defn build-warehouse [game]
+;  (let [pf-tex (-> game :tex-cache :warehouse)
+;        mx (-> game :inputs :mouse-x)
+;        my (-> game :inputs :mouse-y)
+;        world-v3 (-> (:camera game) (.unproject (Vector3. mx my 0)))
+;        tile-align-x (-> (quot (.-x world-v3) utils/tile-size) (* utils/tile-size))
+;        tile-align-y (-> (quot (.-y world-v3) utils/tile-size) (* utils/tile-size))
+;        transform-c (c/transform tile-align-x tile-align-y 0 0 0)
+;        renderable-c (c/renderable pf-tex)
+;        tiles-under-wh (tiles-under (:data transform-c) (:data renderable-c) (:tile-map game))
+;        road-tiles-under (tiles-under (:data transform-c) (:data renderable-c) (:road-map game))
+;        placement? (placeable? tiles-under-wh road-tiles-under)]
+;    (if placement?
+;      (render/run-single transform-c
+;                         renderable-c
+;                         (:batch game))
+;      (render/run-single transform-c
+;                         (assoc-in renderable-c [:data :texture] (-> game :tex-cache :warehouse-red))
+;                         (:batch game)))
+;
+;    (let [click-x (-> game :inputs :mouse-click-x)
+;          click-y (-> game :inputs :mouse-click-y)]
+;      (if (and click-x click-y placement?)
+;        (let [wh-added-g (assoc game :ecs (e/warehouse (:ecs game)
+;                                                         (:tex-cache game)
+;                                                         tile-align-x
+;                                                         tile-align-y))]
+;          (assoc wh-added-g :tile-map (set-passable (:tile-map wh-added-g) tiles-under-wh false)))
+;        game))))
 
-(defn build-potato-farm [game]
-  (let [pf-tex (-> game :tex-cache :potato-farm)
-        mx (-> game :inputs :mouse-x)
-        my (-> game :inputs :mouse-y)
-        world-v3 (-> (:camera game) (.unproject (Vector3. mx my 0)))
-        tile-align-x (-> (quot (.-x world-v3) utils/tile-size) (* utils/tile-size))
-        tile-align-y (-> (quot (.-y world-v3) utils/tile-size) (* utils/tile-size))
-        transform-c (c/transform tile-align-x tile-align-y 0 0 0)
-        renderable-c (c/renderable pf-tex)
-        tiles-under-pf (tiles-under (:data transform-c) (:data renderable-c) (:tile-map game))
-        road-tiles-under (tiles-under (:data transform-c) (:data renderable-c) (:road-map game))
-        placement? (placeable? tiles-under-pf road-tiles-under)]
-    (if placement?
-      (render/run-single transform-c
-                         renderable-c
-                         (:batch game))
-      (render/run-single transform-c
-                         (assoc-in renderable-c [:data :texture] (-> game :tex-cache :potato-farm-red))
-                         (:batch game)))
+;(defn build-potato-farm [game]
+;  (let [pf-tex (-> game :tex-cache :potato-farm)
+;        mx (-> game :inputs :mouse-x)
+;        my (-> game :inputs :mouse-y)
+;        world-v3 (-> (:camera game) (.unproject (Vector3. mx my 0)))
+;        tile-align-x (-> (quot (.-x world-v3) utils/tile-size) (* utils/tile-size))
+;        tile-align-y (-> (quot (.-y world-v3) utils/tile-size) (* utils/tile-size))
+;        transform-c (c/transform tile-align-x tile-align-y 0 0 0)
+;        renderable-c (c/renderable pf-tex)
+;        tiles-under-pf (tiles-under (:data transform-c) (:data renderable-c) (:tile-map game))
+;        road-tiles-under (tiles-under (:data transform-c) (:data renderable-c) (:road-map game))
+;        placement? (placeable? tiles-under-pf road-tiles-under)]
+;    (if placement?
+;      (render/run-single transform-c
+;                         renderable-c
+;                         (:batch game))
+;      (render/run-single transform-c
+;                         (assoc-in renderable-c [:data :texture] (-> game :tex-cache :potato-farm-red))
+;                         (:batch game)))
+;
+;    (let [click-x (-> game :inputs :mouse-click-x)
+;          click-y (-> game :inputs :mouse-click-y)]
+;      (if (and click-x click-y placement?)
+;        (let [pf-added-g (assoc game :ecs (e/potato-farm (:ecs game)
+;                                                         (:tex-cache game)
+;                                                         tile-align-x
+;                                                         tile-align-y))]
+;            (assoc pf-added-g :tile-map (set-passable (:tile-map pf-added-g) tiles-under-pf false)))
+;        game))))
 
-    (let [click-x (-> game :inputs :mouse-click-x)
-          click-y (-> game :inputs :mouse-click-y)]
-      (if (and click-x click-y placement?)
-        (let [pf-added-g (assoc game :ecs (e/potato-farm (:ecs game)
-                                                         (:tex-cache game)
-                                                         tile-align-x
-                                                         tile-align-y))]
-            (assoc pf-added-g :tile-map (set-passable (:tile-map pf-added-g) tiles-under-pf false)))
-        game))))
-
-(defn build-road [game]
-  (let [texture (-> game :tex-cache :road)
-        mx (-> game :inputs :mouse-x)
-        my (-> game :inputs :mouse-y)
-        world-v3 (-> (:camera game) (.unproject (Vector3. mx my 0)))
-        tile-align-x (-> (quot (.-x world-v3) utils/tile-size) (* utils/tile-size))
-        tile-align-y (-> (quot (.-y world-v3) utils/tile-size) (* utils/tile-size))
-        transform-c (c/transform tile-align-x tile-align-y 0 0 0)
-        renderable-c (c/renderable texture)
-        tiles-under-road (tiles-under (:data transform-c) (:data renderable-c) (:tile-map game))
-        road-tiles-under (tiles-under (:data transform-c) (:data renderable-c) (:road-map game))
-        placement? (placeable? tiles-under-road road-tiles-under)]
-    (if placement?
-      (render/run-single transform-c
-                         renderable-c
-                         (:batch game))
-      (render/run-single transform-c
-                         (assoc-in renderable-c [:data :texture] (-> game :tex-cache :road-red))
-                         (:batch game)))
-
-    (let [click-x (-> game :inputs :mouse-click-x)
-          click-y (-> game :inputs :mouse-click-y)]
-      (if (and click-x click-y placement?)
-        (let [thing-added-g (assoc game :ecs (e/road (:ecs game)
-                                                     (:tex-cache game)
-                                                     tile-align-x
-                                                     tile-align-y))
-              road-map-updt-g (assoc-in thing-added-g [:road-map
-                                                       (utils/world->grid tile-align-x)
-                                                       (utils/world->grid tile-align-y)
-                                                       :passable]
-                                        true)]
-          road-map-updt-g)
-        game)))
-  )
+;(defn build-road [game]
+;  (let [texture (-> game :tex-cache :road)
+;        mx (-> game :inputs :mouse-x)
+;        my (-> game :inputs :mouse-y)
+;        world-v3 (-> (:camera game) (.unproject (Vector3. mx my 0)))
+;        tile-align-x (-> (quot (.-x world-v3) utils/tile-size) (* utils/tile-size))
+;        tile-align-y (-> (quot (.-y world-v3) utils/tile-size) (* utils/tile-size))
+;        transform-c (c/transform tile-align-x tile-align-y 0 0 0)
+;        renderable-c (c/renderable texture)
+;        tiles-under-road (tiles-under (:data transform-c) (:data renderable-c) (:tile-map game))
+;        road-tiles-under (tiles-under (:data transform-c) (:data renderable-c) (:road-map game))
+;        placement? (placeable? tiles-under-road road-tiles-under)]
+;    (if placement?
+;      (render/run-single transform-c
+;                         renderable-c
+;                         (:batch game))
+;      (render/run-single transform-c
+;                         (assoc-in renderable-c [:data :texture] (-> game :tex-cache :road-red))
+;                         (:batch game)))
+;
+;    (let [click-x (-> game :inputs :mouse-click-x)
+;          click-y (-> game :inputs :mouse-click-y)]
+;      (if (and click-x click-y placement?)
+;        (let [thing-added-g (assoc game :ecs (e/road (:ecs game)
+;                                                     (:tex-cache game)
+;                                                     tile-align-x
+;                                                     tile-align-y))
+;              road-map-updt-g (assoc-in thing-added-g [:road-map
+;                                                       (utils/world->grid tile-align-x)
+;                                                       (utils/world->grid tile-align-y)
+;                                                       :passable]
+;                                        true)]
+;          road-map-updt-g)
+;        game)))
+;  )
 
 (defn set-build-mode [game bm]
   (assoc-in game [:ui :build-mode] bm))
@@ -232,9 +241,9 @@
     (if (empty? (:inputs g))
       g
       (case (build-mode g)
-        :potato-farm (build-potato-farm g)
-        :road (build-road g)
-        :warehouse (build-warehouse g)
+        ;:potato-farm (build-potato-farm g)
+        ;:road (build-road g)
+        ;:warehouse (build-warehouse g)
         nil g
         ))))
 
@@ -261,9 +270,10 @@
       (.bottom root-table)
       (.add root-table buildings-table)
       (doto buildings-table
-        (.add (btn "Potato Farm" skin :potato-farm))
-        (.add (btn "Road" skin :road))
-        (.add (btn "Warehouse" skin :warehouse))))))
+        ;(.add (btn "Potato Farm" skin :potato-farm))
+        ;(.add (btn "Road" skin :road))
+        ;(.add (btn "Warehouse" skin :warehouse))
+        ))))
 
 ;generic shit for game loop
 (defn pause []
@@ -284,8 +294,8 @@
       (def second-counter 0.0)
       (def last-fps fps)
       (def fps 0)
-      (when (< last-fps 60)
-        (println "frame rate is dropping below 60 : " last-fps " @ " (new java.util.Date))))))
+      (when (< last-fps 45)
+        (println "frame rate is dropping below 45 : " last-fps " @ " (new java.util.Date))))))
 
 (defn move-camera [{inputs :inputs, cam :camera}]
   (do

@@ -1,19 +1,19 @@
 (ns proja.systems.render
-  (:import (com.badlogic.gdx.graphics.g2d TextureRegion))
+  (:import (com.badlogic.gdx.graphics.g2d TextureRegion SpriteBatch))
   (:require [proja.ecs.core :as ecs]))
 
 (defn run-single [trans-comp render-comp batch]
   {:pre [(= (:type trans-comp) :transform),
          (= (:type render-comp) :renderable)]}
-  (let [texture-region ^TextureRegion (:texture (:data render-comp))
+  (let [texture-region (:texture (:data render-comp))
         x (float (get-in trans-comp [:data :x]))
         y (float (get-in trans-comp [:data :y]))
         origin-x (float (get-in trans-comp [:data :origin-x]))
         origin-y (float (get-in trans-comp [:data :origin-y]))
         ;libgdx draws rotation counter clock wise, and um, i want to keep my code clock wise because it  makes more sense to me.
         rotation (* -1.0 (float (get-in trans-comp [:data :rotation])))
-        width (float (.getRegionWidth texture-region))
-        height (float (.getRegionHeight texture-region))
+        width (float (.getRegionWidth ^TextureRegion texture-region))
+        height (float (.getRegionHeight ^TextureRegion texture-region))
         scale-x (float (:scale-x (:data render-comp)))
         scale-y (float(:scale-y (:data render-comp)))]
     (.begin batch)
@@ -26,7 +26,7 @@
         transform (ecs/component entity-cs :transform ent-id)
         batch (:batch game)
         tex-region (:texture renderable)]
-    (.draw batch tex-region
+    (.draw ^SpriteBatch batch ^TextureRegion tex-region
            (:x transform) (:y transform)
            (:origin-x transform) (:origin-y transform)
            (float (.getRegionWidth tex-region)) (float (.getRegionHeight tex-region))
@@ -39,9 +39,9 @@
   {:function   run
    :predicates {:and #{:renderable :transform}}
    :begin (fn begin-render [g]
-            (.begin (:batch g))
+            (.begin ^SpriteBatch (:batch g))
             g)
    :end (fn end-render [g]
-          (.end (:batch g))
+          (.end ^SpriteBatch (:batch g))
           g)})
 

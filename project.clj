@@ -14,7 +14,7 @@
                   :classifier "natives-desktop"]
                  [com.badlogicgames.gdx/gdx-platform "1.8.0"
                   :classifier "natives-desktop"]
-                 [com.rpl/specter "0.11.2"]
+                 [com.rpl/specter "0.12.0"]
                  ]
   ;:source-paths ["src"]
   :aot [proja.MyGame]
@@ -22,4 +22,8 @@
   ;:main ^:skip-aot trying-things.core
   ;:target-path "target/%s"
   ;:profiles {:uberjar {:aot :all}})
+  :jvm-opts ["-Dcom.sun.management.jmxremote"
+             "-Dcom.sun.management.jmxremote.ssl=false"
+             "-Dcom.sun.management.jmxremote.authenticate=false"
+             "-Dcom.sun.management.jmxremote.port=43210"]   ;port number is arbitrary, pick whatever.
   )

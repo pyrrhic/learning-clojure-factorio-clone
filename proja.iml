@@ -23,7 +23,7 @@
     <orderEntry type="library" name="Leiningen: com.badlogicgames.gdx/gdx-platform:1.8.0:natives-desktop" level="project" />
     <orderEntry type="library" name="Leiningen: com.badlogicgames.gdx/gdx:1.8.0" level="project" />
     <orderEntry type="library" name="Leiningen: com.badlogicgames.jlayer/jlayer:1.0.1-gdx" level="project" />
-    <orderEntry type="library" name="Leiningen: com.rpl/specter:0.11.2" level="project" />
+    <orderEntry type="library" name="Leiningen: com.rpl/specter:0.12.0" level="project" />
     <orderEntry type="library" name="Leiningen: net.java.jinput/jinput-platform:2.0.5:natives-linux" level="project" />
     <orderEntry type="library" name="Leiningen: net.java.jinput/jinput-platform:2.0.5:natives-osx" level="project" />
     <orderEntry type="library" name="Leiningen: net.java.jinput/jinput-platform:2.0.5:natives-windows" level="project" />

@@ -66,6 +66,19 @@
       (utils/dissoc-in [:ent-comps ent-id c-type])
       (update-system-ents ent-id)))
 
+(defn replace-component [ecs c-type c-data ent-id]
+  (assoc-in ecs [:ent-comps ent-id c-type] c-data))
+
+(defn update-components [ecs ent-id updated-comps]
+  "updated-comps should be a map, where the key is the component type and the value is the component data.
+  Returns an updated ecs."
+  (loop [ks (keys updated-comps)
+         ent-cs ecs]
+    (if (empty? ks)
+      ent-cs
+      (recur (rest ks)
+             (replace-component ent-cs (first ks) ((first ks) updated-comps) ent-id)))))
+
 (defn add-tag [ecs tag ent-id]
   (update-in ecs [:tags tag] #(if (nil? %)
                     (conj #{} ent-id)
@@ -76,6 +89,7 @@
   (get-in ecs [:tags tag]))
 
 (defn create-component [type data]
+  "This is only useful for adding entities with a vector of components in add-entity. No other use."
   {:type type, :data data})
 
 (defn add-entity
