@@ -22,6 +22,7 @@
   ;:main ^:skip-aot trying-things.core
   ;:target-path "target/%s"
   ;:profiles {:uberjar {:aot :all}})
+  ;:global-vars {*assert* false}
   :jvm-opts ["-Dcom.sun.management.jmxremote"
              "-Dcom.sun.management.jmxremote.ssl=false"
              "-Dcom.sun.management.jmxremote.authenticate=false"

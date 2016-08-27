@@ -3,39 +3,6 @@
             [proja.ecs.core :as ecs]
             [proja.utils :as u]))
 
-;(defn potato-farm [ecs tex-cache x y]
-;  (let [texture (:potato-farm tex-cache)]
-;    (:ecs (ecs/add-entity ecs [(c/transform x y
-;                                            0               ;rotation
-;                                            (/ (.getRegionWidth texture) 2)
-;                                            (/ (.getRegionHeight texture) 2))
-;                               (c/renderable texture)
-;                               (c/produces 1                ;max-workers
-;                                           {:potato (c/product [] 1 10)})
-;                               (c/haulable-storage)
-;                               (c/loading-dock 5 1)]))))
-;
-;(defn warehouse [ecs tex-cache x y]
-;  (let [texture (:warehouse tex-cache)
-;        ecs-ent-id (ecs/add-entity ecs [(c/transform x y
-;                                              0               ;rotation
-;                                              (/ (.getRegionWidth texture) 2)
-;                                              (/ (.getRegionHeight texture) 2))
-;                                 (c/renderable texture)
-;                                 (c/warehouse-request-queue)
-;                                 (c/loading-dock 3 9)
-;                                 ])
-;        ecs-w-tags (ecs/add-tag (:ecs ecs-ent-id) :warehouse (:ent-id ecs-ent-id))]
-;    ecs-w-tags))
-;
-;(defn road [ecs tex-cache x y]
-;  (let [texture (:road tex-cache)]
-;    (:ecs (ecs/add-entity ecs [(c/transform x y
-;                                            0               ;rotation
-;                                            (/ (.getRegionWidth texture) 2)
-;                                            (/ (.getRegionHeight texture) 2))
-;                               (c/renderable texture)]))))
-
 (defn ore-piece [tex-cache x y]
   "Returns list of components"
   (let [texture (:ore-piece tex-cache)]
@@ -44,7 +11,7 @@
                   (/ (.getRegionWidth texture) 2)
                   (/ (.getRegionHeight texture) 2))
      (c/renderable texture)
-     (c/pickupable)]))
+     (c/storable :ore 1)]))
 
 (defn ore-patch [ecs tex-cache x y]
   (let [texture (:ore-patch tex-cache)]
@@ -52,7 +19,7 @@
                                             0               ;rotation
                                             (/ (.getRegionWidth texture) 2)
                                             (/ (.getRegionHeight texture) 2))
-                               (c/renderable texture)
+                               (c/renderable texture -2)
                                (c/resource :iron-ore 100)]))))
 
 (defn ore-miner [ecs tex-cache x y]
@@ -64,7 +31,7 @@
                       0               ;rotation
                       (/ (.getRegionWidth texture) 2)
                       (/ (.getRegionHeight texture) 2))
-         (c/renderable texture)
+         (c/renderable texture 1)
          (c/animation :mining
                       (c/frames-h :mining
                                   [(c/frame-h (:mining-building-1 tex-cache) 0.1)
@@ -76,14 +43,47 @@
                   1 3                                       ;output
                   )]))))
 
-(defn arm [ecs tex-cache x y]
+;(defn- arm-output-em-key [x y rotation]
+;  (let [offsets (case rotation
+;                  0 {:x 0, :y 1}
+;                  90 {:x 1, :y 0}
+;                  180 {:x 0, :y -1}
+;                  270 {:x -1, :y 0})]
+;    (str (+ x (:x offsets)) (+ y (:y offsets)))))
+;
+;(defn- arm-input-em-key [x y rotation]
+;  (let [offsets (case rotation
+;                  0 {:x 0, :y -1}
+;                  90 {:x -1, :y 0}
+;                  180 {:x 0, :y 1}
+;                  270 {:x 1, :y 0})]
+;    (str (+ x (:x offsets)) (+ y (:y offsets)))))
+
+(defn- output-loc [x y rotation]
+  (let [offsets (case rotation
+                  0 {:x 0, :y 1}
+                  90 {:x 1, :y 0}
+                  180 {:x 0, :y -1}
+                  270 {:x -1, :y 0})]
+    {:x (+ x (:x offsets)), :y (+ y (:y offsets))}))
+
+(defn- input-loc [x y rotation]
+  (let [offsets (case rotation
+                  0 {:x 0, :y -1}
+                  90 {:x -1, :y 0}
+                  180 {:x 0, :y 1}
+                  270 {:x 1, :y 0})]
+    {:x (+ x (:x offsets)), :y (+ y (:y offsets))}))
+
+(defn arm [ecs tex-cache x y rotation]
   (let [texture (:arm-1 tex-cache)]
-    (:ecs (ecs/add-entity ecs [(c/transform (u/grid->world x) (u/grid->world y)
-                                            0               ;rotation
-                                            (+ 16 32)
+    (:ecs (ecs/add-entity ecs [(c/transform (u/grid->world x) (u/grid->world (dec y))
+                                            rotation
+                                            16
                                             (+ 16 32))
-                               (c/renderable texture)
-                               (c/swingable)
+                               (c/renderable texture 2)
+                               (c/swingable (input-loc x y rotation)
+                                            (output-loc x y rotation))
                                (c/animation nil
                                             (c/frames-h :swing
                                                         [(c/frame-h (:arm-1 tex-cache) 0.05)
@@ -99,3 +99,69 @@
                                                          (c/frame-h (:arm-2 tex-cache) 0.05)
                                                          (c/frame-h (:arm-1 tex-cache) 0.05)]
                                                         false))]))))
+
+(defn belt [ecs tex-cache x y rotation]
+  (let [texture (:belt-1 tex-cache)]
+    (:ecs (ecs/add-entity ecs [(c/transform (u/grid->world x) (u/grid->world y)
+                                            rotation
+                                            (/ (.getRegionWidth texture) 2)
+                                            (/ (.getRegionHeight texture) 2))
+                               (c/renderable texture -1)
+                               (c/belt-mover)
+                               (c/animation :move
+                                            (c/frames-h :move
+                                                        [(c/frame-h (:belt-1 tex-cache) 0.05)
+                                                         (c/frame-h (:belt-2 tex-cache) 0.05)
+                                                         (c/frame-h (:belt-3 tex-cache) 0.05)]
+                                                        true)
+                                            )]))))
+
+(defn storage [ecs tex-cache x y]
+  (let [texture (:storage tex-cache)]
+    (:ecs (ecs/add-entity ecs [(c/transform (u/grid->world x) (u/grid->world y)
+                                            0
+                                            (/ (.getRegionWidth texture) 2)
+                                            (/ (.getRegionHeight texture) 2))
+                               (c/renderable texture 1)
+                               (c/container)]))))
+
+(defn gun [x y]
+  [(c/transform (u/grid->world x) (u/grid->world y)
+                0
+                0
+                0)
+   (c/storable :gun
+               10)])
+
+(defn bullet [x y]
+  [(c/transform (u/grid->world x) (u/grid->world y)
+                0
+                0
+                0)
+   (c/storable :bullet
+               1)])
+
+(defn factory [ecs tex-cache x y]
+  (let [texture (:factory-1 tex-cache)]
+    (:ecs (ecs/add-entity ecs [(c/transform (u/grid->world x) (u/grid->world y)
+                                            0
+                                            (/ (.getRegionWidth texture) 2)
+                                            (/ (.getRegionHeight texture) 2))
+                               (c/renderable texture 1)
+                               (c/input-container)
+                               (c/output-container)
+                               (c/producer
+                                 (c/recipes-h [:bullet (c/recipe-h {:ore 1}
+                                                                   {:bullet 1}
+                                                                   1
+                                                                   1)
+                                               :gun (c/recipe-h {:ore 5}
+                                                                {:gun 1}
+                                                                60
+                                                                1)]))
+                               (c/animation nil
+                                            (c/frames-h :produce
+                                                        [(c/frame-h (:factory-1 tex-cache) 0.05)
+                                                         (c/frame-h (:factory-2 tex-cache) 0.05)
+                                                         (c/frame-h (:factory-3 tex-cache) 0.05)]
+                                                        true))]))))

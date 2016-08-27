@@ -1,5 +1,6 @@
 (ns proja.ecs.core
-  (:require [proja.utils :as utils]))
+  (:require [proja.utils :as utils]
+            [clojure.test :as test]))
 
 (defn init []
   "Returns ecs map"
@@ -47,6 +48,11 @@
                             (get ecs :systems))))
 
 (defn component [ecs c-type ent-id]
+  {:post [(test/is (cond
+                     (= :disabled c-type) true
+                     (nil? %) false
+                     :else true)
+                   (str "c-type = "  c-type " ent-id = " ent-id))]}
   (get-in ecs [:ent-comps ent-id c-type]))
 
 (defn add-component [ecs c-type c-data ent-id]
@@ -57,6 +63,7 @@
 
 ;update-component that only modifys ent-comps, don't need to update the system entities
 (defn update-component [ecs c-type ent-id func]
+  {:pre [(fn? func)]}
   (let [c-data (func (component ecs c-type ent-id))]
     (assoc-in ecs [:ent-comps ent-id c-type] c-data)))
 
@@ -125,15 +132,25 @@
   (update ecs :systems #(conj % (assoc system :qualifying-ents #{}))))
 
 (defn- run-system [sys game]
-  (let [f (:function sys)
+  (let [ecs (:ecs game)
+        f (:function sys)
         begin-fn #(if (:begin sys) ((:begin sys) %) %)
         end-fn #(if (:end sys) ((:end sys) %) %)
         run-sys-fn #(loop [es (:qualifying-ents sys)
                            g %]
                      (if (empty? es)
                        g
-                       (recur (rest es)
-                              (f (first es) g))))]
+                       (if (component ecs :disabled (first es))
+                         (recur (rest es)
+                                g)
+                         (recur (rest es)
+                                (f (first es) g))
+                         ))
+                     ;(if (empty? es)
+                     ;  g
+                     ;  (recur (rest es)
+                     ;         (f (first es) g)))
+                     )]
     (-> game
         (begin-fn)
         (run-sys-fn)
@@ -149,7 +166,16 @@
         (recur (rest sys)
                (run-system (first sys) g))))))
 
+(defn disable-entity [ecs ent-id]
+  "Returns an updated ecs."
+  (add-component ecs :disabled {} ent-id))
 
+(defn enable-entity [ecs ent-id]
+  "Returns an updated ecs."
+  (remove-component ecs :disabled ent-id))
+
+(defn latest-ent-id [ecs]
+  @(:entity-id-counter ecs))
 
 
 

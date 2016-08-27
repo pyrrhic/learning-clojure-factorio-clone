@@ -3,7 +3,9 @@
 (def tile-size 32)
 
 (defn world->grid [n]
-  (int (/ n tile-size)))
+  ;(int (/ n tile-size))
+  (int (quot n tile-size))
+  )
 
 (defn grid->world [n]
   (float (* n tile-size)))
@@ -12,6 +14,63 @@
   (-> animation
       (assoc :current-animation nil)
       (assoc :current-frame -1)))
+
+(defn ent-map-key
+  "Returns the entity map key based on the transform.
+  Offsets are in terms of tiles.
+  The x and y for the transform are in terms of world coordinates."
+  ([transform]
+   (ent-map-key transform 0 0))
+  ([transform x-offset y-offset]
+   (let [add-offset (fn [n offset] (+ n (* tile-size offset)))
+         add-origin (fn [n origin] (+ n origin))
+         x (-> transform :x (add-origin (:origin-x transform)) (add-offset x-offset) (world->grid))
+         y (-> transform :y (add-origin (:origin-y transform)) (add-offset y-offset) (world->grid))]
+     (str x y))))
+
+;Keys are strings of x grid + y grid, so (str (+ 1 1)).
+;Values are Maps, keys are ent 'types' and values are Sets of ent id's
+(defn add-producer [ent-map ent-id transform renderable]
+  (let [x (-> transform :x (world->grid))
+        y (-> transform :y (world->grid))
+        width (-> renderable :texture (.getRegionWidth) (world->grid))
+        height (-> renderable :texture (.getRegionHeight) (world->grid))
+        fns (for [x (range x (+ x width))
+                  y (range y (+ y height))
+                  :let [k (str (int x) (int y))]]
+              (fn [ent-map] (update ent-map k #(if %
+                                                (assoc % :input-container #{}
+                                                         :output-container #{}
+                                                         :container-id ent-id)
+                                                {:input-container  #{},
+                                                 :output-container #{}
+                                                 :container-id ent-id}))))]
+    (loop [funcs fns
+           e-map ent-map]
+      (if (empty? funcs)
+        e-map
+        (recur (rest funcs)
+               ((first funcs) e-map))))))
+
+(defn add-storage [ent-map ent-id transform renderable]
+  (let [x (-> transform :x (world->grid))
+        y (-> transform :y (world->grid))
+        width (-> renderable :texture (.getRegionWidth) (world->grid))
+        height (-> renderable :texture (.getRegionHeight) (world->grid))
+        fns (for [x (range x (+ x width))
+                  y (range y (+ y height))
+                  :let [k (str (int x) (int y))]]
+              (fn [ent-map] (update ent-map k #(if %
+                                                (assoc % :container #{}
+                                                         :container-id ent-id)
+                                                {:container  #{}
+                                                 :container-id ent-id}))))]
+    (loop [funcs fns
+           e-map ent-map]
+      (if (empty? funcs)
+        e-map
+        (recur (rest funcs)
+               ((first funcs) e-map))))))
 
 (defn dissoc-in
   [m [k & ks :as keys]]

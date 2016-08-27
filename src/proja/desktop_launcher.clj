@@ -1,6 +1,6 @@
 (ns proja.desktop-launcher
   (:import [com.badlogic.gdx Gdx Application]
-           [com.badlogic.gdx.backends.lwjgl LwjglApplication])
+           [com.badlogic.gdx.backends.lwjgl LwjglApplication LwjglApplicationConfiguration])
   (:require [proja.screens.main-screen :as main-screen]))
 
 (def game (proja.MyGame.))
@@ -17,6 +17,12 @@
 ;(require 'proja.main-screen :reload-all)
 
 (defn app []
-  (LwjglApplication. game "hello" 800 600))
+  (let [config (LwjglApplicationConfiguration.)]
+    (set! (.height config) 600)
+    (set! (.width config) 800)
+    (set! (.title config) "hey you")
+    (set! (.-foregroundFPS config) 30)
+    (set! (.-backgroundFPS config) 30)
+    (LwjglApplication. game config)))
 
 (app)

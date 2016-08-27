@@ -1,5 +1,6 @@
 (ns proja.tile-map.core
-  (require [proja.utils :as utils]))
+  (require [proja.utils :as utils])
+  (:import (com.badlogic.gdx.graphics.g2d SpriteBatch)))
 
 (defn- create-tile
   [x y texture]
@@ -93,11 +94,11 @@
 	 (if (= (count g) 0)
 	   nil
 	   (do
-       (.begin batch)
+       (.begin ^SpriteBatch batch)
 	     (doall (map 
 	             (fn [tile]
 	              (let [{x :grid-x, y :grid-y, t :texture} tile]
-                 (.draw batch t (utils/grid->world x) (utils/grid->world y))))
+                 (.draw ^SpriteBatch batch t (utils/grid->world x) (utils/grid->world y))))
 	             (first g)))
-      (.end batch)
+      (.end ^SpriteBatch batch)
 	     (recur (rest g))))))

@@ -14,12 +14,17 @@
 
 (defn renderable
   ([texture]
-    (renderable texture 1 1))
+    (renderable texture 1 1 0))
+  ([texture z]
+   (renderable texture 1 1 z))
   ([texture scale-x scale-y]
+   (renderable texture scale-x scale-y 0))
+  ([texture scale-x scale-y z]
    (ecs/create-component :renderable
                          {:texture texture
                           :scale-x scale-x
-                          :scale-y scale-y})))
+                          :scale-y scale-y
+                          :z z})))
 
 (defn frame-h [tex dur]
   "A single frame."
@@ -57,7 +62,7 @@
                         {:type     type
                          :quantity quantity}))
 
-(defn miner [x y width height mining-rate output-x output-y ]
+(defn miner [x y width height mining-rate output-x output-y]
   (ecs/create-component :miner
                         {:x               x
                          :y               y
@@ -68,14 +73,74 @@
                          :output-x        (+ x output-x)
                          :output-y        (+ y output-y)}))
 
-(defn pickupable []
-  (ecs/create-component :pickupable
-                        {}))
-
-(defn swingable []
+(defn swingable [input-loc output-loc]
   (ecs/create-component :swingable
                         {:state :idle                       ;:idle, :swing, :swing-back
-                         :held-item nil}))
+                         :held-item nil
+                         :input-loc input-loc               ;{:x x :y y}
+                         :output-loc output-loc             ;{:x x :y y}
+                         :input-em-key (str (:x input-loc) (:y input-loc))
+                         :output-em-key (str (:x output-loc) (:y output-loc))}))
+
+(defn belt-mover []
+  (ecs/create-component :belt-mover
+                        {:state     :idle                   ;:idle, :moving
+                         :move-rate 1                       ;1 pixel per frame
+                         }))
+
+(defn container []
+  (ecs/create-component :container
+                        {:max-size 100
+                         :current-size 0
+                         ;keys are types
+                         ;values are sets of ent-ids
+                         :items {}}))
+
+(defn input-container []
+  (ecs/create-component :input-container
+                        {:max-size 100
+                         :current-size 0
+                         ;keys are types
+                         ;values are sets of ent-ids
+                         :items {}}))
+
+(defn output-container []
+  (ecs/create-component :output-container
+                        {:max-size 100
+                         :current-size 0
+                         ;keys are types
+                         ;values are sets of ent-ids
+                         :items {}}))
+
+(defn recipe-h [inputs output duration size]
+  {:inputs inputs
+   :output output
+   :duration duration
+   :size size})
+
+(defn recipes-h [recipe-data]
+  "Input should be vector of :recipe-type recipe-data, repeating.
+  Must have at least 2 items (type and data).
+  Must be pairs of 2."
+  {:pre [(even? (count recipe-data))]}
+  (->> (partition 2 recipe-data)
+       (map (fn [kd] {(first kd) (second kd)}))
+       (reduce conj)))
+
+(defn producer [recipes]
+  (ecs/create-component :producer
+                        {:current-recipe nil
+                         :remaining-duration -1.0
+                         ;recipes should look like
+                         ;{:recipe-type {:inputs #{types}
+                         ;               :output type
+                         ;               :duration 0.0}}
+                         :recipes recipes}))
+
+(defn storable [type size]
+  (ecs/create-component :storable
+                        {:type type
+                         :size size}))
 
 ;(defn warehouse-request-queue []
 ;  (ecs/create-component :warehouse-request-queue

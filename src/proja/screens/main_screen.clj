@@ -11,7 +11,10 @@
             [proja.systems.animate :as animate]
             [proja.systems.mine-ore :as mine-ore]
             [proja.systems.swing-entity :as swing-entity]
-            [proja.ecs.core :as ecs]))
+            [proja.systems.belt-move :as belt-move]
+            [proja.systems.produce-good :as produce-good]
+            [proja.ecs.core :as ecs]
+            [proja.utils :as utils]))
 
 ;http://www.gamefromscratch.com/post/2015/02/03/LibGDX-Video-Tutorial-Scene2D-UI-Widgets-Layout-and-Skins.aspx
 ;http://www.badlogicgames.com/forum/viewtopic.php?f=11&t=8327
@@ -91,16 +94,45 @@
           ;                        column))
           ;                (tmap/create-grid 25 19 (dissoc (:tex-cache game) :grass-1)))
           :ecs (-> (ecs/init)
-                   (ecs/add-system (render/create))
                    (ecs/add-system (animate/create))
                    (ecs/add-system (mine-ore/create))
                    (ecs/add-system (swing-entity/create))
+                   (ecs/add-system (belt-move/create))
+                   (ecs/add-system (produce-good/create))
                    )))))
+
+(defn reset-ecs-em []
+  (do (update-game! #(assoc % :ecs (-> (ecs/init)
+                                       (ecs/add-system (animate/create))
+                                       (ecs/add-system (mine-ore/create))
+                                       (ecs/add-system (swing-entity/create))
+                                       (ecs/add-system (belt-move/create))
+                                       (ecs/add-system (produce-good/create))
+                                       )))
+      (update-game! #(assoc % :entity-map {}))))
 
 ;(update-game! #(assoc-in % [:entity-map (ent-map-key 5 5) :resource] ))
 
 (defn ent-map-key [x y]
   (str x y))
+
+(defn set-storage-ent-map [ent-map ecs ent-id]
+  (let [transform (ecs/component ecs :transform ent-id)
+        x (-> transform :x (utils/world->grid))
+        y (-> transform :y (utils/world->grid))
+        texture (:texture (ecs/component ecs :renderable ent-id))
+        width (-> (.getRegionWidth texture) (utils/world->grid))
+        height (-> (.getRegionHeight texture) (utils/world->grid))
+        e-map-functions (for [x (range x (+ x width))
+                              y (range y (+ y height))
+                              :let [tile-loc (str x y)]]
+                          (fn [ent-map] (assoc-in ent-map [tile-loc :storage] ent-id)))]
+    (loop [fs e-map-functions
+           e-map ent-map]
+      (if (empty? fs)
+        e-map
+        (recur (rest fs)
+               ((first fs) e-map))))))
 
 ;(defn tiles-under [transform-d renderable-d tile-map]
 ;  "Expects the entity to be grid aligned."
@@ -294,8 +326,8 @@
       (def second-counter 0.0)
       (def last-fps fps)
       (def fps 0)
-      (when (< last-fps 45)
-        (println "frame rate is dropping below 45 : " last-fps " @ " (new java.util.Date))))))
+      (when (< last-fps 30)
+        (println "frame rate is dropping below 30 : " last-fps " @ " (new java.util.Date))))))
 
 (defn move-camera [{inputs :inputs, cam :camera}]
   (do
@@ -321,13 +353,13 @@
 
 (defn game-loop [game]
   (fps-logic)
-  (if (:paused game)
-    game
-    (do (clear-screen)
+  (do (clear-screen)
+      (.setProjectionMatrix (:batch game) (.combined (:camera game)))
+      (tmap/draw-grid (:tile-map game) (:batch game))
+      (render/draw-all (:ecs game) (:batch game))
 
-        (.setProjectionMatrix (:batch game) (.combined (:camera game)))
-        (tmap/draw-grid (:tile-map game) (:batch game))
-
+      (if (:paused game)
+        game
         (-> game
             (ecs/run)
             (build-mode-logic)

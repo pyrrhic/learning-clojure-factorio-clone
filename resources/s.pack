@@ -5,189 +5,210 @@ filter: Nearest,Nearest
 repeat: none
 warehouse-red
   rotate: false
-  xy: 1, 197
+  xy: 1, 201
   size: 192, 288
   orig: 192, 288
   offset: 0, 0
   index: -1
 warehouse
   rotate: false
-  xy: 195, 197
+  xy: 195, 201
   size: 192, 288
   orig: 192, 288
   offset: 0, 0
   index: -1
 storage
   rotate: false
-  xy: 389, 229
+  xy: 389, 233
   size: 192, 256
   orig: 192, 256
   offset: 0, 0
   index: -1
 potato-farm-red
   rotate: false
-  xy: 1, 35
+  xy: 1, 39
   size: 160, 160
   orig: 160, 160
   offset: 0, 0
   index: -1
 potato-farm
   rotate: false
-  xy: 583, 325
+  xy: 583, 329
   size: 160, 160
   orig: 160, 160
   offset: 0, 0
   index: -1
+factory-1
+  rotate: false
+  xy: 163, 103
+  size: 96, 96
+  orig: 96, 96
+  offset: 0, 0
+  index: -1
+factory-2
+  rotate: false
+  xy: 745, 393
+  size: 96, 96
+  orig: 96, 96
+  offset: 0, 0
+  index: -1
+factory-3
+  rotate: false
+  xy: 261, 103
+  size: 96, 96
+  orig: 96, 96
+  offset: 0, 0
+  index: -1
 mining-building-1
   rotate: false
-  xy: 163, 99
+  xy: 843, 393
   size: 96, 96
   orig: 96, 96
   offset: 0, 0
   index: -1
 mining-building-2
   rotate: false
-  xy: 745, 389
-  size: 96, 96
-  orig: 96, 96
-  offset: 0, 0
-  index: -1
-mining-building-3
-  rotate: false
-  xy: 261, 99
+  xy: 583, 231
   size: 96, 96
   orig: 96, 96
   offset: 0, 0
   index: -1
 arm-1
   rotate: false
-  xy: 843, 389
+  xy: 941, 393
   size: 64, 96
   orig: 64, 96
   offset: 0, 0
   index: -1
 arm-2
   rotate: false
-  xy: 909, 389
+  xy: 681, 231
   size: 64, 96
   orig: 64, 96
   offset: 0, 0
   index: -1
+mining-building-3
+  rotate: false
+  xy: 163, 5
+  size: 96, 96
+  orig: 96, 96
+  offset: 0, 0
+  index: -1
 arm-3
   rotate: false
-  xy: 583, 227
+  xy: 261, 5
   size: 64, 96
   orig: 64, 96
   offset: 0, 0
   index: -1
 arm-4
   rotate: false
-  xy: 649, 227
+  xy: 327, 5
   size: 64, 96
   orig: 64, 96
   offset: 0, 0
   index: -1
 arm-5
   rotate: false
-  xy: 163, 1
+  xy: 359, 103
   size: 64, 96
   orig: 64, 96
   offset: 0, 0
   index: -1
 belt-1
   rotate: false
-  xy: 745, 354
-  size: 32, 33
-  orig: 32, 33
+  xy: 745, 359
+  size: 32, 32
+  orig: 32, 32
   offset: 0, 0
   index: -1
 belt-2
   rotate: false
-  xy: 975, 453
+  xy: 1, 5
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: -1
 belt-3
   rotate: false
-  xy: 1, 1
+  xy: 779, 359
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: -1
 grass-1
   rotate: false
-  xy: 229, 65
+  xy: 35, 5
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: -1
 hauler-idle
   rotate: false
-  xy: 779, 355
+  xy: 813, 359
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: -1
 hauler-scan-1
   rotate: false
-  xy: 975, 419
+  xy: 69, 5
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: -1
 hauler-scan-2
   rotate: false
-  xy: 35, 1
+  xy: 847, 359
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: -1
 hauler-scan-3
   rotate: false
-  xy: 229, 31
+  xy: 103, 5
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: -1
 hauler-walk-1
   rotate: false
-  xy: 263, 65
+  xy: 881, 359
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: -1
 hauler-walk-2
   rotate: false
-  xy: 813, 355
+  xy: 915, 359
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: -1
 ore-patch
   rotate: false
-  xy: 69, 1
+  xy: 949, 359
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: -1
 ore-piece
   rotate: false
-  xy: 263, 31
+  xy: 393, 69
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: -1
 road-red
   rotate: false
-  xy: 297, 65
+  xy: 393, 35
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: -1
 road
   rotate: false
-  xy: 847, 355
+  xy: 393, 1
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
