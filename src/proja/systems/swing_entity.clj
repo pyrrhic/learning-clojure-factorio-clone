@@ -137,25 +137,18 @@
 
 ;(ns proja.screens.main-screen)
 ;(require '[proja.entities.core :as e])
-;(update-game! #(assoc % :ecs (e/ore-miner (:ecs game) (:tex-cache game) 1 1)))
-;(update-game! #(assoc % :ecs (e/ore-patch (:ecs game) (:tex-cache game) 1 1)))
-;(update-game! #(assoc-in % [:entity-map "11" :ore] #{:2}))
-;(update-game! #(assoc % :ecs (e/arm (:ecs game) (:tex-cache game) 2 5 0)))
+;(do
+;  (update-game! #(assoc % :ecs (e/ore-miner (:ecs game/g) (:tex-cache game/g) 1 1)))
+;  (update-game! #(assoc % :ecs (e/ore-patch (:ecs game/g) (:tex-cache game/g) 1 1)))
+;  (update-game! #(assoc % :ecs (e/ore-patch (:ecs game/g) (:tex-cache game/g) 2 1)))
+;  (update-game! #(assoc-in % [:entity-map "11" :ore] #{:2}))
+;  (update-game! #(assoc-in % [:entity-map "21" :ore] #{:3}))
+;  (update-game! #(assoc % :ecs (e/arm (:ecs game/g) (:tex-cache game/g) 2 5 0)))
 ;
-;(update-game! #(assoc % :ecs (e/factory (:ecs game) (:tex-cache game) 2 6)))
-;(update-game! #(assoc % :entity-map
-;                        (utils/add-producer (:entity-map game) :7
-;                                            (ecs/component (:ecs game) :transform :7)
-;                                            (ecs/component (:ecs game) :renderable :7))))
-
-;(update-game! #(assoc % :ecs (e/storage (:ecs game) (:tex-cache game) 2 6)))
-;(update-game! #(assoc % :entity-map
-;                        (utils/add-storage (:entity-map game) :4
-;                                           (ecs/component (:ecs game) :transform :4)
-;                                           (ecs/component (:ecs game) :renderable :4))))
-
-;(update-game! #(assoc % :ecs (e/belt (:ecs game) (:tex-cache game) 2 6 90)))
-;(update-game! #(assoc % :ecs (e/belt (:ecs game) (:tex-cache game) 3 6 90)))
-;(update-game! #(assoc % :ecs (e/arm (:ecs game) (:tex-cache game) 5 6 90)))
-;(update-game! #(assoc % :ecs (e/arm (:ecs game) (:tex-cache game) 2 5 0)))
+;
+;  (update-game! #(assoc % :ecs (e/factory (:ecs game/g) (:tex-cache game/g) 2 6)))
+;  (update-game! #(assoc % :entity-map
+;                          (utils/add-producer (:entity-map game/g) :5
+;                                              (ecs/component (:ecs game/g) :transform :5)
+;                                              (ecs/component (:ecs game/g) :renderable :5)))))
 

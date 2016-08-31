@@ -22,13 +22,27 @@
                                (c/renderable texture -2)
                                (c/resource :iron-ore 100)]))))
 
-(defn ore-miner [ecs tex-cache x y]
+(defn ore-miner-x-output [rotation]
+  (case rotation
+    0 1
+    90 3
+    180 1
+    270 -1))
+
+(defn ore-miner-y-output [rotation]
+  (case rotation
+    0 3
+    90 1
+    180 -1
+    270 1))
+
+(defn ore-miner [ecs tex-cache x y rotation]
   (let [texture (:mining-building-1 tex-cache)]
     (:ecs
       (ecs/add-entity
         ecs
         [(c/transform (u/grid->world x) (u/grid->world y)
-                      0               ;rotation
+                      rotation
                       (/ (.getRegionWidth texture) 2)
                       (/ (.getRegionHeight texture) 2))
          (c/renderable texture 1)
@@ -40,7 +54,8 @@
                                   true))
          (c/miner x y (.getRegionWidth texture) (.getRegionHeight texture) ;texture
                   1                                         ;mining rate
-                  1 3                                       ;output
+                  (ore-miner-x-output rotation)
+                  (ore-miner-y-output rotation)
                   )]))))
 
 ;(defn- arm-output-em-key [x y rotation]

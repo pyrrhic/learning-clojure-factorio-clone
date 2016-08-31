@@ -72,6 +72,36 @@
         (recur (rest funcs)
                ((first funcs) e-map))))))
 
+(defn add-building [ent-map ent-id transform renderable]
+  (let [x (-> transform :x (world->grid))
+        y (-> transform :y (world->grid))
+        width (-> renderable :texture (.getRegionWidth) (world->grid))
+        height (-> renderable :texture (.getRegionHeight) (world->grid))
+        fns (for [x (range x (+ x width))
+                  y (range y (+ y height))
+                  :let [k (str (int x) (int y))]]
+              (fn [ent-map] (assoc-in ent-map [k :building-id] ent-id)))]
+    (loop [funcs fns
+           e-map ent-map]
+      (if (empty? funcs)
+        e-map
+        (recur (rest funcs)
+               ((first funcs) e-map))))))
+
+(defn collides-with-a-building? [ent-map transform renderable]
+  (let [x (-> transform :x (world->grid))
+        y (-> transform :y (world->grid))
+        width (-> renderable :texture (.getRegionWidth) (world->grid))
+        height (-> renderable :texture (.getRegionHeight) (world->grid))
+        building-ids (for [x (range x (+ x width))
+                           y (range y (+ y height))
+                           :let [k (str (int x) (int y))]]
+                       (-> ent-map (get k) :building-id))]
+    (pos? (count (filter some? building-ids)))))
+
+(defn my-keyword [v]
+  (-> v (str) (keyword)))
+
 (defn dissoc-in
   [m [k & ks :as keys]]
   (if ks

@@ -24,7 +24,7 @@
 
 (defn remove-ore-patch-ent-map [ent-map resource ore-tile-loc]
   (if (zero? (:quantity resource))
-    (assoc-in ent-map [ore-tile-loc :ore] nil)
+    (assoc-in ent-map [ore-tile-loc :ore] #{})
     ent-map))
 
 (defn updtd-ecs-ent-map [ecs ent-id ore-tile-loc ent-map game]
