@@ -20,7 +20,7 @@
                                             (/ (.getRegionWidth texture) 2)
                                             (/ (.getRegionHeight texture) 2))
                                (c/renderable texture -2)
-                               (c/resource :iron-ore 100)]))))
+                               (c/resource :iron-ore 1)]))))
 
 (defn ore-miner-x-output [rotation]
   (case rotation

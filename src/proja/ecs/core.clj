@@ -55,11 +55,17 @@
                    (str "c-type = "  c-type " ent-id = " ent-id))]}
   (get-in ecs [:ent-comps ent-id c-type]))
 
+(defn unsafe-component [ecs c-type ent-id]
+  (get-in ecs [:ent-comps ent-id c-type]))
+
 (defn add-component [ecs c-type c-data ent-id]
   "Returns an updated ecs."
   (-> ecs
       (assoc-in [:ent-comps ent-id c-type] c-data)
       (update-system-ents ent-id)))
+
+(defn add-temp-component [ecs c-type c-data ent-id]
+  (assoc-in ecs [:ent-comps ent-id c-type] c-data))
 
 ;update-component that only modifys ent-comps, don't need to update the system entities
 (defn update-component [ecs c-type ent-id func]
@@ -72,6 +78,9 @@
   (-> ecs
       (utils/dissoc-in [:ent-comps ent-id c-type])
       (update-system-ents ent-id)))
+
+(defn remove-temp-component [ecs c-type ent-id]
+  (utils/dissoc-in ecs [:ent-comps ent-id c-type]))
 
 (defn replace-component [ecs c-type c-data ent-id]
   (assoc-in ecs [:ent-comps ent-id c-type] c-data))

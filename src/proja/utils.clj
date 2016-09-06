@@ -99,8 +99,8 @@
                        (-> ent-map (get k) :building-id))]
     (pos? (count (filter some? building-ids)))))
 
-(defn my-keyword [v]
-  (-> v (str) (keyword)))
+(defn my-keyword [n]
+  (-> n (str) (keyword)))
 
 (defn dissoc-in
   [m [k & ks :as keys]]

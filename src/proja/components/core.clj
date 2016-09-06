@@ -1,5 +1,6 @@
 (ns proja.components.core
-  (:require [proja.ecs.core :as ecs]))
+  (:require [proja.ecs.core :as ecs]
+            [proja.utils :as utils]))
 
 ;Functions with a -h suffix means they are not components, just functions to help build components
 ;;with heavily nested data.
@@ -141,6 +142,11 @@
   (ecs/create-component :storable
                         {:type type
                          :size size}))
+
+(defn move-to [x-grid y-grid]
+  "temp component"
+  {:x x-grid
+   :y y-grid})
 
 ;(defn warehouse-request-queue []
 ;  (ecs/create-component :warehouse-request-queue

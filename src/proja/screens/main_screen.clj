@@ -2,10 +2,11 @@
   (:import [com.badlogic.gdx Screen Gdx InputProcessor Input$Keys InputMultiplexer]
            [com.badlogic.gdx.graphics GL20 OrthographicCamera]
            [com.badlogic.gdx.graphics.g2d SpriteBatch TextureAtlas]
-           (com.badlogic.gdx.scenes.scene2d.ui Skin TextButton Table)
+           (com.badlogic.gdx.scenes.scene2d.ui Skin)
            (com.badlogic.gdx.scenes.scene2d Stage)
            (com.badlogic.gdx.utils.viewport ScreenViewport)
-           (com.badlogic.gdx.scenes.scene2d.utils ChangeListener))
+           (com.badlogic.gdx.physics.box2d World Box2DDebugRenderer)
+           (com.badlogic.gdx.math Vector2 Matrix4))
   (:require [proja.screens.game :as game]
             [proja.tile-map.core :as tmap]
             [proja.systems.render :as render]
@@ -50,7 +51,12 @@
                                                            (keyword))]
                                             false))
       true)
-    (keyTyped [this character] false)
+    (keyTyped [this character]
+      (alter-var-root (var game/g) #(assoc-in % [:inputs :key-typed (-> character
+                                                                        (clojure.string/lower-case)
+                                                                        (keyword))]
+                                              true))
+      true)
     (touchUp [this x y pointer button]
       (alter-var-root (var game/g) #(assoc-in % [:inputs :mouse-click-x] x))
       (alter-var-root (var game/g) #(assoc-in % [:inputs :mouse-click-y] (- (.getHeight Gdx/graphics) y)))
@@ -80,6 +86,10 @@
 (defn init-game [_]
   (let [texture-cache (-> (texture-atlas) (ui-skin))]
     (-> (assoc {}
+          :box2d-world (World. (Vector2. 0 0) true)
+          :box2d-debug-renderer (Box2DDebugRenderer.)
+          :box2d-debug-matrix (Matrix4.)
+          :box2d-accumulator 0.0
           :camera (OrthographicCamera. (.getWidth Gdx/graphics) (.getHeight Gdx/graphics))
           :batch (SpriteBatch.)
           :stage (Stage. (ScreenViewport.))
@@ -112,11 +122,6 @@
                                        (ecs/add-system (produce-good/create))
                                        )))
       (update-game! #(assoc % :entity-map {}))))
-
-;(update-game! #(assoc-in % [:entity-map (ent-map-key 5 5) :resource] ))
-
-(defn ent-map-key [x y]
-  (str x y))
 
 (defn pause []
   (update-game! #(assoc % :paused true)))
@@ -161,23 +166,42 @@
   (.draw (:stage game))
   game)
 
+(defn update-physics [game]
+  ;0.022 aprox = 1/45
+  ;max frame time to avoid spiral of death (on slow devices)
+  (let [frame-time (min (:delta game) 0.25)]
+    (loop [acc (+ (:box2d-accumulator game) frame-time)]
+      (if (< acc 0.022)
+        (assoc game :box2d-accumulator acc)
+        (recur (do (.step ^World (:box2d-world game) 0.022 6 2)
+                   (- acc 0.022)))))))
+
 (defn game-loop [game]
   (fps-logic)
   (do (clear-screen)
-      (.setProjectionMatrix (:batch game) (.combined (:camera game)))
+      (.setProjectionMatrix ^SpriteBatch (:batch game) (.combined ^OrthographicCamera (:camera game)))
       (tmap/draw-grid (:tile-map game) (:batch game))
       (render/draw-all (:ecs game) (:batch game))
+      (doto (:box2d-debug-matrix game)
+        (.set (.combined ^OrthographicCamera (:camera game)))
+        (.scale (float 32) (float 32) (float 1)))
+      (.render ^Box2DDebugRenderer (:box2d-debug-renderer game)
+               ^World (:box2d-world game)
+               (:box2d-debug-matrix game))
 
       (if (:paused game)
-        game
         (-> game
-            (ecs/run)
+            ;(ecs/run)
             (ui/run)
-            ;(build-mode-logic)
-            ;(assoc-in [:inputs :mouse-click-x] nil)
-            ;(assoc-in [:inputs :mouse-click-y] nil)
             (update-cam!)
-            (update-stage!)))))
+            (update-stage!))
+        (-> game
+            (ui/run)
+            (ecs/run)
+            (update-cam!)
+            (update-stage!)
+            (update-physics)
+            ))))
 
 (defn screen []
   (reify Screen

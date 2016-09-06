@@ -179,6 +179,10 @@
   (.end ^SpriteBatch batch)
   )
 
+(defn build-mode-rotation [game]
+  (let [rotation (get-in game [:ui :rotation])]
+    (if (nil? rotation) 0 rotation)))
+
 (defn clear-clicks [game]
   (-> (assoc-in game [:inputs :mouse-click-x] nil)
       (assoc-in [:inputs :mouse-click-y] nil)))
@@ -207,24 +211,26 @@
         tex-cache (:tex-cache game)
         transform (:data (c/transform tile-align-x
                                       tile-align-y
-                                      0 0 0))
+                                      (build-mode-rotation game)
+                                      (/ (.getRegionWidth (:mining-building-1 tex-cache)) 2)
+                                      (/ (.getRegionWidth (:mining-building-1 tex-cache)) 2)))
         renderable (:data (c/renderable (:mining-building-1 tex-cache)))]
     (if (not (utils/collides-with-a-building? (:entity-map game)
                                               transform
                                               renderable))
-      (single-draw transform renderable (:batch game))
-      (let [click-x (-> game :inputs :mouse-click-x)
-            click-y (-> game :inputs :mouse-click-y)]
-        (if (and click-x click-y)
-          (let [new-ecs (e/ore-miner (:ecs game)
-                                     tex-cache
-                                     (utils/world->grid tile-align-x)
-                                     (utils/world->grid tile-align-y)
-                                     (build-mode-rotation game))]
-            (-> (assoc game :ecs new-ecs)
-                (add-building transform renderable)
-                (clear-clicks)))
-          game))
+      (do (single-draw transform renderable (:batch game))
+          (let [click-x (-> game :inputs :mouse-click-x)
+                click-y (-> game :inputs :mouse-click-y)]
+            (if (and click-x click-y)
+              (let [new-ecs (e/ore-miner (:ecs game)
+                                         tex-cache
+                                         (utils/world->grid tile-align-x)
+                                         (utils/world->grid tile-align-y)
+                                         (build-mode-rotation game))]
+                (-> (assoc game :ecs new-ecs)
+                    (add-building transform renderable)
+                    (clear-clicks)))
+              game)))
       game)))
 
 (defn make-ore-patch [game]
@@ -254,28 +260,76 @@
             game)))
       game)))
 
+(defn sync-animation [game ent-id]
+  (let [ecs (:ecs game)
+        belt-id (->> (-> ecs :ent-comps)
+                     (filter #(not (nil? (:belt-mover (second %)))))
+                     (filter #(not (nil? (-> (second %) :animation :current-animation))))
+                     (first)
+                     (first))]
+    (if belt-id
+      (assoc game :ecs (ecs/replace-component ecs
+                                              :animation
+                                              (ecs/component ecs :animation belt-id)
+                                              ent-id))
+      game)))
+
+(defn make-belt [game]
+  (let [{tile-align-x :x
+         tile-align-y :y} (tile-aligned-mouse (:inputs game) (:camera game))
+        tex-cache (:tex-cache game)
+        texture (:belt-1 tex-cache)
+        transform (:data (c/transform tile-align-x
+                                      tile-align-y
+                                      (build-mode-rotation game)
+                                      (/ (.getRegionWidth texture) 2)
+                                      (/ (.getRegionWidth texture) 2)))
+        renderable (:data (c/renderable texture))]
+    (if (not (utils/collides-with-a-building? (:entity-map game)
+                                              transform
+                                              renderable))
+      (do (single-draw transform renderable (:batch game))
+          (let [click-x (-> game :inputs :mouse-click-x)
+                click-y (-> game :inputs :mouse-click-y)]
+            (if (and click-x click-y)
+              (let [new-ecs (e/belt (:ecs game)
+                                    tex-cache
+                                    (utils/world->grid tile-align-x)
+                                    (utils/world->grid tile-align-y)
+                                    (build-mode-rotation game))]
+                (-> (assoc game :ecs new-ecs)
+                    (sync-animation (utils/my-keyword (ecs/latest-ent-id new-ecs)))
+                    (add-building transform renderable)
+                    (clear-clicks)))
+              game)))
+      game)))
+
 (defn set-build-mode [game bm]
   (assoc-in game [:ui :build-mode] bm))
 
 (defn build-mode [game]
   (get-in game [:ui :build-mode]))
 
-(defn build-mode-rotation [game]
-  (get-in game [:ui :rotation]))
+(defn set-untyped [game key]
+  {:pre [(if (true? (-> game :inputs :key-typed key)) true (println key))]}
+  (assoc-in game [:inputs :key-typed key] false))
 
 (defn rotate-build-mode-rotation [game]
-  (update-in game [:ui :rotation] #(case %
-                                    0 90
-                                    90 180
-                                    180 270
-                                    270 0
-                                    nil 0)))
+  (-> (update-in game [:ui :rotation] #(case %
+                                        0 90
+                                        90 180
+                                        180 270
+                                        270 0
+                                        nil 90))
+      (set-untyped :r)))
 
 (defn input-logic [game]
   (let [inputs (:inputs game)]
     (cond
       (:escape inputs) (set-build-mode game nil)
-      (:r inputs) (rotate-build-mode-rotation game))))
+      (-> inputs :key-typed :r) (rotate-build-mode-rotation game)
+      (and (nil? (build-mode game)) (:mouse-click-x inputs)) (clear-clicks game)
+      :else game)))
 
 (defn run [game]
   (let [g (input-logic game)]
@@ -284,6 +338,7 @@
       (case (build-mode g)
         :ore-patch (make-ore-patch g)
         :ore-miner (make-ore-miner g)
+        :belt (make-belt g)
         nil g
         ))))
 
@@ -312,6 +367,7 @@
       (doto buildings-table
         (.add (btn "Ore Patch" skin :ore-patch))
         (.add (btn "Ore Miner" skin :ore-miner))
+        (.add (btn "Belt" skin :belt))
         ))))
 
 ;(ns proja.ui)
