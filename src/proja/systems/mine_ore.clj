@@ -12,7 +12,7 @@
 (defn tile-locations [ecs x y width height ent-map]
   (for [x (range x (+ x width))
         y (range y (+ y height))
-        :let [tile-loc (str x y)
+        :let [tile-loc (utils/ent-map-key x y)
               ore-ids (:ore (get ent-map tile-loc))]
         :when (and (not-empty ore-ids) (pos? (:quantity (ecs/component ecs :resource (first ore-ids)))))]
     tile-loc))
@@ -30,7 +30,7 @@
 (defn updtd-ecs-ent-map [ecs ent-id ore-tile-loc ent-map game]
   (let [miner (ecs/component ecs :miner ent-id)
         ore-patch-id (-> (get ent-map ore-tile-loc) :ore (first))
-        output-ent-map-key (str (:output-x miner) (:output-y miner))]
+        output-ent-map-key (utils/ent-map-key (:output-x miner) (:output-y miner))]
     (cond
       (nil? ore-tile-loc)
       {:ecs     (ecs/update-component ecs :animation ent-id utils/stop-animation)

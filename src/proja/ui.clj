@@ -21,7 +21,7 @@
         height (-> (.getRegionHeight texture) (utils/world->grid))
         e-map-functions (for [x (range x (+ x width))
                               y (range y (+ y height))
-                              :let [tile-loc (str x y)]]
+                              :let [tile-loc (utils/ent-map-key x y)]]
                           (fn [ent-map] (assoc-in ent-map [tile-loc :storage] ent-id)))]
     (loop [fs e-map-functions
            e-map ent-map]
@@ -201,7 +201,7 @@
                                               renderable)))
 
 (defn placeable? [tile-x tile-y entity-map type]
-  (let [k (str tile-x tile-y)
+  (let [k (utils/ent-map-key tile-x tile-y)
         v (get-in entity-map [k type])]
     (if v (zero? (count v)) true)))
 
@@ -252,8 +252,8 @@
                                        (utils/world->grid tile-align-y))]
               (-> (assoc game :ecs new-ecs)
                   (assoc-in [:entity-map
-                             (str (utils/world->grid tile-align-x)
-                                  (utils/world->grid tile-align-y))
+                             (utils/ent-map-key (utils/world->grid tile-align-x)
+                                                (utils/world->grid tile-align-y))
                              :ore]
                             #{(utils/my-keyword (ecs/latest-ent-id new-ecs))})
                   (clear-clicks)))
@@ -264,6 +264,7 @@
   (let [ecs (:ecs game)
         belt-id (->> (-> ecs :ent-comps)
                      (filter #(not (nil? (:belt-mover (second %)))))
+                     ;TODO animation for new belts is set to move. going to need a different way to filter out new belt.
                      (filter #(not (nil? (-> (second %) :animation :current-animation))))
                      (first)
                      (first))]

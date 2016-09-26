@@ -24,6 +24,9 @@
 
 ;(def game {})
 
+;TODO need to fix the entitiy map. right now there is no way to distinguish from
+;TODO 7, 11 or 71, 1. Need to add leading zero's or something.
+
 (defn update-game! [func]
   "Expects a function with 1 parameter which will be the game map. The function must return the updated game map."
   (alter-var-root (var game/g) #(func %))

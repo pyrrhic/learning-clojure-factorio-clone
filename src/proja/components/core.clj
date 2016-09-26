@@ -80,8 +80,10 @@
                          :held-item nil
                          :input-loc input-loc               ;{:x x :y y}
                          :output-loc output-loc             ;{:x x :y y}
-                         :input-em-key (str (:x input-loc) (:y input-loc))
-                         :output-em-key (str (:x output-loc) (:y output-loc))}))
+                         :input-em-key (utils/ent-map-key (:x input-loc)
+                                                          (:y input-loc))
+                         :output-em-key (utils/ent-map-key (:x output-loc)
+                                                           (:y output-loc))}))
 
 (defn belt-mover []
   (ecs/create-component :belt-mover

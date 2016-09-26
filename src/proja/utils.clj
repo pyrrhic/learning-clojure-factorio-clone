@@ -19,6 +19,8 @@
   "Returns the entity map key based on the transform.
   Offsets are in terms of tiles.
   The x and y for the transform are in terms of world coordinates."
+  ([x y]
+    (str x \_ y))
   ([transform]
    (ent-map-key transform 0 0))
   ([transform x-offset y-offset]
@@ -26,7 +28,7 @@
          add-origin (fn [n origin] (+ n origin))
          x (-> transform :x (add-origin (:origin-x transform)) (add-offset x-offset) (world->grid))
          y (-> transform :y (add-origin (:origin-y transform)) (add-offset y-offset) (world->grid))]
-     (str x y))))
+     (ent-map-key x y))))
 
 ;Keys are strings of x grid + y grid, so (str (+ 1 1)).
 ;Values are Maps, keys are ent 'types' and values are Sets of ent id's
@@ -37,7 +39,7 @@
         height (-> renderable :texture (.getRegionHeight) (world->grid))
         fns (for [x (range x (+ x width))
                   y (range y (+ y height))
-                  :let [k (str (int x) (int y))]]
+                  :let [k (ent-map-key (int x) (int y))]]
               (fn [ent-map] (update ent-map k #(if %
                                                 (assoc % :input-container #{}
                                                          :output-container #{}
@@ -59,7 +61,7 @@
         height (-> renderable :texture (.getRegionHeight) (world->grid))
         fns (for [x (range x (+ x width))
                   y (range y (+ y height))
-                  :let [k (str (int x) (int y))]]
+                  :let [k (ent-map-key (int x) (int y))]]
               (fn [ent-map] (update ent-map k #(if %
                                                 (assoc % :container #{}
                                                          :container-id ent-id)
@@ -79,7 +81,7 @@
         height (-> renderable :texture (.getRegionHeight) (world->grid))
         fns (for [x (range x (+ x width))
                   y (range y (+ y height))
-                  :let [k (str (int x) (int y))]]
+                  :let [k (ent-map-key (int x) (int y))]]
               (fn [ent-map] (assoc-in ent-map [k :building-id] ent-id)))]
     (loop [funcs fns
            e-map ent-map]
@@ -95,7 +97,7 @@
         height (-> renderable :texture (.getRegionHeight) (world->grid))
         building-ids (for [x (range x (+ x width))
                            y (range y (+ y height))
-                           :let [k (str (int x) (int y))]]
+                           :let [k (ent-map-key (int x) (int y))]]
                        (-> ent-map (get k) :building-id))]
     (pos? (count (filter some? building-ids)))))
 

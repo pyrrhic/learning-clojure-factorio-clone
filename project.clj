@@ -26,5 +26,8 @@
   :jvm-opts ["-Dcom.sun.management.jmxremote"
              "-Dcom.sun.management.jmxremote.ssl=false"
              "-Dcom.sun.management.jmxremote.authenticate=false"
-             "-Dcom.sun.management.jmxremote.port=43210"]   ;port number is arbitrary, pick whatever.
+             "-Dcom.sun.management.jmxremote.port=43210"
+             ]   ;port number is arbitrary, pick whatever.
   )
+
+;"-XX: -OmitStackTraceInFastThrow"
