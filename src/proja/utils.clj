@@ -3,9 +3,7 @@
 (def tile-size 32)
 
 (defn world->grid [n]
-  ;(int (/ n tile-size))
-  (int (quot n tile-size))
-  )
+  (int (quot n tile-size)))
 
 (defn grid->world [n]
   (float (* n tile-size)))

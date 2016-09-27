@@ -4,7 +4,7 @@
             [proja.screens.game :as game]))
 
 (defn neighbor-belt-ids [ecs ent-map ent-id]
-  (let [neighbor-buildings-fn (fn [ent-map transform]
+  (let [neighbor-buildings-fn (fn neighbor-buildings [ent-map transform]
                                 (let [x     (:x transform)
                                       y     (:y transform)
                                       north (get-in ent-map [(utils/ent-map-key transform 0 1) :building-id])
@@ -18,7 +18,7 @@
                                   building-id))]
     (let [neighbor-building-ids (neighbor-buildings-fn ent-map (ecs/component ecs :transform ent-id))]
       (if (empty? neighbor-building-ids)
-        "it empty yo"
+        []
         (map is-belt-fn neighbor-building-ids)
         ))))
 
@@ -62,6 +62,8 @@
    groups is a vector of vector belt-ids."
   (vector-contains? (nth groups group-idx) neighbor-id))
 
+;TODO maybe make belts that face each other, not be neighbors? not really sure why someone would make belts
+;TODO face each toher in the first place though. so maybe just leave it for now.
 (defn- valid-belt-neighbor? [this-belt-id neighbor-id ecs group-idx groups]
   (boolean (and (either-belt-facing? (ecs/component ecs :transform this-belt-id)
                                      (ecs/component ecs :transform neighbor-id))
@@ -90,9 +92,18 @@
       (recur (dec idx)))))
 
 (defn- remove-value [vector value]
-  (let [idx (value-idx vector value)]
-    (vec (concat (subvec vector 0 idx)
-                 (subvec vector (inc idx) (count vector))))))
+  (if (empty? vector)
+    vector
+    (try
+      (let [idx (value-idx vector value)]
+        (if idx
+          (vec (concat (subvec vector 0 idx)
+                       (subvec vector (inc idx) (count vector))))
+          vector))
+      (catch NullPointerException npe
+        (println [vector value])
+        (throw npe))
+      )))
 
 ;[[vector of the belt ids that are in this group, which is by index, so group 0]
 ; [another vector, different belt id's. this would be group 1]]
@@ -133,49 +144,10 @@
                    intersect)
 
             :else
-            groups)
-
-          (== 1 num-neighs)
-          (recur (remove-value open (peek neighs))
-                 current-group
-                 (update groups current-group #(conj % (peek neighs)))
-                 intersect)
-
-          (> num-neighs 1)
-          (recur (vec (remove (set neighs) open)) ;(remove-value open (peek neighs))
-                 current-group
-                 (update groups current-group #(conj % (peek neighs)))
-                 (into intersect (pop neighs)))))))
-  
-  #_(loop [open (apply vector (get-all-belt-ids ecs))
-         current-group nil
-         groups []
-         intersect []]
-    (if (and (nil? current-group) (pos? (count open)))
-      (recur (pop open)
-             0
-             [[(peek open)]]
-             [])
-      (let [belt-id (peek (nth groups current-group))
-            neighs (valid-belt-neighbors belt-id current-group groups ecs ent-map)
-            num-neighs (count neighs)]
-        (cond
-          (zero? num-neighs)
-          (cond
-            (pos? (count intersect))
-            (recur open
-                   current-group
-                   (update groups current-group #(conj % (peek intersect)))
-                   (pop intersect))
-
-            (pos? (count open))
-            (recur (pop open)
-                   (inc current-group)
-                   (conj groups [(peek open)])
-                   intersect)
-
-            :else
-            groups)
+            ;if there is a loop, the last belt that is looked at will be added twice.
+            ;so this is a quick hack way to ensure the belt-ids are unique.
+            ;what I should do is change the algorithm to not add the last belt twice if there is a loop.
+            (map set groups))
 
           (== 1 num-neighs)
           (recur (remove-value open (peek neighs))
@@ -197,6 +169,9 @@
     90 {:x 1, :y 0}
     180 {:x 0, :y -1}
     270 {:x -1, :y 0}))
+
+;find the end belt
+;then work in reverse.
 
 (defn end-belts [groups ent-map]
   "desc: groups should be a vector of vectors. each child vector has belt ids, and the
