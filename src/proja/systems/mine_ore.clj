@@ -30,34 +30,47 @@
 (defn updtd-ecs-ent-map [ecs ent-id ore-tile-loc ent-map game]
   (let [miner (ecs/component ecs :miner ent-id)
         ore-patch-id (-> (get ent-map ore-tile-loc) :ore (first))
-        output-ent-map-key (utils/ent-map-key (:output-x miner) (:output-y miner))]
-    (cond
-      (nil? ore-tile-loc)
-      {:ecs     (ecs/update-component ecs :animation ent-id utils/stop-animation)
-       :ent-map ent-map}
+        output-ent-map-key (utils/ent-map-key (:output-x miner) (:output-y miner))
+        energy (ecs/component ecs :energy ent-id)
+        updated-ecs-em (cond
+                         (nil? ore-tile-loc)
+                         {:ecs     (ecs/update-component ecs :animation ent-id utils/stop-animation)
+                          :ent-map ent-map}
 
-      (pos? (:mining-cooldown miner))
-      {:ecs     (-> (ecs/replace-component ecs :miner
-                                           (assoc miner :mining-cooldown (- (:mining-cooldown miner) (:delta game)))
-                                           ent-id)
-                    (ecs/update-component :animation ent-id #(assoc % :current-animation :mining)))
-       :ent-map ent-map}
+                         (pos? (:mining-cooldown miner))
+                         {:ecs     (-> (ecs/replace-component ecs :miner
+                                                              (assoc miner :mining-cooldown
+                                                                           (- (:mining-cooldown miner)
+                                                                              (:delta game)))
+                                                              ent-id)
+                                       (ecs/update-component :animation
+                                                             ent-id
+                                                             #(assoc % :current-animation :mining)))
+                          :ent-map ent-map}
 
-      (-> (get ent-map output-ent-map-key) :pickupable (nil?))
-      (let [new-ore-ent (ecs/add-entity ecs (e/ore-piece (:tex-cache game) (:output-x miner) (:output-y miner)))
-            resource (ecs/component ecs :resource ore-patch-id)
-            quant-updated-resource (update resource :quantity dec)]
-        {:ecs     (-> (:ecs new-ore-ent)
-                      (ecs/update-component :miner ent-id #(assoc % :mining-cooldown (:mining-rate %)))
-                      (ecs/replace-component :resource quant-updated-resource ore-patch-id)
-                      (remove-ore-patch-ecs quant-updated-resource ore-patch-id))
-         :ent-map (-> (assoc-in ent-map [output-ent-map-key :pickupable] (:ent-id new-ore-ent))
-                      (remove-ore-patch-ent-map quant-updated-resource ore-tile-loc))})
+                         (and (-> (get ent-map output-ent-map-key) :pickupable (nil?))
+                              (== 100 (:current-amount energy)))
+                         (let [new-ore-ent (ecs/add-entity ecs (e/ore-piece (:tex-cache game)
+                                                                            (:output-x miner)
+                                                                            (:output-y miner)))
+                               resource (ecs/component ecs :resource ore-patch-id)
+                               quant-updated-resource (update resource :quantity dec)]
+                           {:ecs     (-> (:ecs new-ore-ent)
+                                         (ecs/update-component :miner
+                                                               ent-id
+                                                               #(assoc % :mining-cooldown (:mining-rate %)))
+                                         (ecs/replace-component :resource quant-updated-resource ore-patch-id)
+                                         (remove-ore-patch-ecs quant-updated-resource ore-patch-id))
+                            :ent-map (-> (assoc-in ent-map [output-ent-map-key :pickupable] (:ent-id new-ore-ent))
+                                         (remove-ore-patch-ent-map quant-updated-resource ore-tile-loc))})
 
-      :else
-      {:ecs     (ecs/update-component ecs :animation ent-id utils/stop-animation)
-       :ent-map ent-map}
-      )))
+                         :else
+                         {:ecs     (ecs/update-component ecs :animation ent-id utils/stop-animation)
+                          :ent-map ent-map})]
+    (update updated-ecs-em :ecs #(ecs/replace-component %
+                                                        :energy
+                                                        (assoc energy :current-amount 0)
+                                                        ent-id))))
 
 (defn run [ent-id game]
   (let [ecs (:ecs game)

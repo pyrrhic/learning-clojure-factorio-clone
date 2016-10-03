@@ -1,7 +1,8 @@
 (ns proja.systems.belt-move
   (:require [proja.utils :as utils]
             [proja.ecs.core :as ecs]
-            [proja.components.core :as c]))
+            [proja.components.core :as c]
+            [proja.belt-group :as belt-group]))
 
 (defn idle [ent-map ecs ent-id]
   (let [transform (ecs/component ecs :transform ent-id)]
@@ -57,27 +58,27 @@
     (and (== (:y belt-dir-2) 1) (== (:y belt-dir-1) -1)) true
     :else false))
 
-(defn can-move? [transform belt-dir ent-map ecs]
-  "True if the 'neighbor' tile has a belt and is not facing the current belt.
-  And if neighbor has no pickupable, or the pickupable is moving to another tile, also true."
-  (let [neighbor-key (utils/ent-map-key (-> transform :x (utils/world->grid) (#(+ % (:x belt-dir))))
-                                        (-> transform :y (utils/world->grid) (#(+ % (:y belt-dir)))))
-        building-id (-> ent-map (get neighbor-key) :building-id)
-        neighbor-pickupable-id (-> ent-map (get neighbor-key) :pickupable)]
-    (and
-      building-id
-      (ecs/unsafe-component ecs :belt-mover building-id)
-      (not (facing-each-other? belt-dir (belt-direction (ecs/component ecs :transform building-id))))
-      (or (nil? neighbor-pickupable-id)
-          (let [move-to (ecs/unsafe-component ecs :move-to neighbor-pickupable-id)
-                n-p-transform (ecs/component ecs :transform neighbor-pickupable-id)]
-            (if move-to
-              ;the question here is, am i moving to another tile, or still moving into place in existing tile?
-              (or (not= (utils/world->grid (:x n-p-transform)) (:x move-to))
-                  (not= (utils/world->grid (:y n-p-transform)) (:y move-to)))
-              false))))))
+;(defn can-move? [transform belt-dir ent-map ecs]
+;  "True if the 'neighbor' tile has a belt and is not facing the current belt.
+;  And if neighbor has no pickupable, or the pickupable is moving to another tile, also true."
+;  (let [neighbor-key (utils/ent-map-key (-> transform :x (utils/world->grid) (#(+ % (:x belt-dir))))
+;                                        (-> transform :y (utils/world->grid) (#(+ % (:y belt-dir)))))
+;        building-id (-> ent-map (get neighbor-key) :building-id)
+;        neighbor-pickupable-id (-> ent-map (get neighbor-key) :pickupable)]
+;    (and
+;      building-id
+;      (ecs/unsafe-component ecs :belt-mover building-id)
+;      (not (facing-each-other? belt-dir (belt-direction (ecs/component ecs :transform building-id))))
+;      (or (nil? neighbor-pickupable-id)
+;          (let [move-to (ecs/unsafe-component ecs :move-to neighbor-pickupable-id)
+;                n-p-transform (ecs/component ecs :transform neighbor-pickupable-id)]
+;            (if move-to
+;              ;the question here is, am i moving to another tile, or still moving into place in existing tile?
+;              (or (not= (utils/world->grid (:x n-p-transform)) (:x move-to))
+;                  (not= (utils/world->grid (:y n-p-transform)) (:y move-to)))
+;              false))))))
 
-(defn move [transform move-to move-rate xy-keyword]
+#_(defn move [transform move-to move-rate xy-keyword]
   "returns a transform with updated :x or :y, in the direction towards the move-to"
   (cond
     (> (xy-keyword transform) (utils/grid->world (xy-keyword move-to)))
@@ -94,7 +95,7 @@
 ;then when it arrives, and the switch over in tile happens, get rid of the moving-to from that tile
 ;the moving to will prevent an arm from placing something there.
 
-(defn moving [ent-map ecs ent-id]
+#_(defn moving [ent-map ecs ent-id]
   (let [transform (ecs/component ecs :transform ent-id)
         pickupable-ent-id (->> (utils/ent-map-key transform) (get ent-map) :pickupable)
         pickupable-transform (if (nil? pickupable-ent-id) nil (ecs/component ecs :transform pickupable-ent-id))
@@ -150,55 +151,208 @@
        :ent-map ent-map}
       )))
 
-(defn run [ent-id game]
-  (let [ecs-ent-map (case (:state (ecs/component (:ecs game) :belt-mover ent-id))
-                      :idle (idle (:entity-map game) (:ecs game) ent-id)
-                      :moving (moving (:entity-map game) (:ecs game) ent-id))]
-    (assoc game :ecs (:ecs ecs-ent-map)
-                :entity-map (:ent-map ecs-ent-map))))
+;(defn run [ent-id game]
+;  (let [ecs-ent-map (case (:state (ecs/component (:ecs game) :belt-mover ent-id))
+;                      :idle (idle (:entity-map game) (:ecs game) ent-id)
+;                      :moving (moving (:entity-map game) (:ecs game) ent-id))]
+;    (assoc game :ecs (:ecs ecs-ent-map)
+;                :entity-map (:ent-map ecs-ent-map))))
+
+(defn move [transform belt-dir move-rate]
+  (assoc transform :x (+ (:x transform) (* (:x belt-dir) move-rate))
+                   :y (+ (:y transform) (* (:y belt-dir) move-rate))))
+
+(defn game-updtd-ecs-em [game ecs ent-map]
+  (assoc game :ecs ecs
+              :entity-map ent-map))
+
+(defn neighbor-belt-ids [ecs ent-map ent-id]
+  (let [neighbor-buildings-fn (fn neighbor-buildings [ent-map transform]
+                                (let [x     (:x transform)
+                                      y     (:y transform)
+                                      north (get-in ent-map [(utils/ent-map-key transform 0 1) :building-id])
+                                      south (get-in ent-map [(utils/ent-map-key transform 0 -1) :building-id])
+                                      east  (get-in ent-map [(utils/ent-map-key transform 1 0) :building-id])
+                                      west  (get-in ent-map [(utils/ent-map-key transform -1 0) :building-id])]
+                                  (filter #(not (nil? %)) [north south east west])))
+        is-belt-fn            (fn [building-id]
+                                (if (nil? (ecs/unsafe-component ecs :belt-mover building-id))
+                                  false
+                                  building-id))]
+    (let [neighbor-building-ids (neighbor-buildings-fn ent-map (ecs/component ecs :transform ent-id))]
+      (if (empty? neighbor-building-ids)
+        []
+        (remove false? (map is-belt-fn neighbor-building-ids))
+        ))))
+
+(defn any-belt-moving-to-this? [this-belt ent-map ecs]
+  (let [transform (ecs/component ecs :transform this-belt)
+        north (get-in ent-map [(utils/ent-map-key transform 0 1) :building-id])
+        south (get-in ent-map [(utils/ent-map-key transform 0 -1) :building-id])
+        east (get-in ent-map [(utils/ent-map-key transform 1 0) :building-id])
+        west (get-in ent-map [(utils/ent-map-key transform -1 0) :building-id])]
+    (or (and (ecs/unsafe-component ecs :belt-mover north)
+             (== 180 (:rotation (ecs/component ecs :transform north)))
+             (:moving-item (ecs/component ecs :belt-mover north)))
+        (and (ecs/unsafe-component ecs :belt-mover south)
+             (== 0 (:rotation (ecs/component ecs :transform south)))
+             (:moving-item (ecs/component ecs :belt-mover south)))
+        (and (ecs/unsafe-component ecs :belt-mover east)
+             (== 270 (:rotation (ecs/component ecs :transform east)))
+             (:moving-item (ecs/component ecs :belt-mover east)))
+        (and (ecs/unsafe-component ecs :belt-mover west)
+             (== 90 (:rotation (ecs/component ecs :transform west)))
+             (:moving-item (ecs/component ecs :belt-mover west)))
+        )))
+
+(defn can-move? [belt-transform ecs ent-map]
+  (let [belt-dir (belt-direction belt-transform)
+        neigh-building-id (get-in ent-map [(utils/ent-map-key belt-transform
+                                                              (:x belt-dir)
+                                                              (:y belt-dir))
+                                           :building-id])]
+    (if neigh-building-id
+      (and (ecs/unsafe-component ecs :belt-mover neigh-building-id)
+           (or (:moving-item (ecs/component ecs :belt-mover neigh-building-id))
+               (nil? (get-in ent-map [(utils/ent-map-key (ecs/component ecs :transform neigh-building-id))
+                                      :pickupable])))
+           (not (any-belt-moving-to-this? neigh-building-id ent-map ecs)))
+      false)))
+
+(defn update-belt [belt-id game]
+  (let [ecs (:ecs game)
+        ent-map (:entity-map game)
+        belt-mover (ecs/component ecs :belt-mover belt-id)
+        belt-trans (ecs/component ecs :transform belt-id)
+        energy (ecs/component ecs :energy belt-id)]
+    (cond
+      (and (nil? (:moving-item belt-mover))
+           (get-in ent-map [(utils/ent-map-key belt-trans) :pickupable])
+           (== 100 (:current-amount energy))
+           (can-move? belt-trans ecs ent-map))
+      (game-updtd-ecs-em
+        game
+        (-> ecs
+            (ecs/replace-component
+              :belt-mover
+              (assoc belt-mover :moving-item (get-in ent-map [(utils/ent-map-key belt-trans) :pickupable])
+                                :move-ticks (/ utils/tile-size (:move-rate belt-mover)))
+              belt-id)
+            (ecs/replace-component
+              :energy
+              (assoc energy :current-amount 0)
+              belt-id))
+        ;remove from ent-map so nothing else picks this up. we have started the move.
+        (assoc-in ent-map [(utils/ent-map-key belt-trans) :pickupable] nil))
+
+      (and (:moving-item belt-mover)
+           (zero? (:move-ticks belt-mover)))
+      (game-updtd-ecs-em
+        game
+        (ecs/replace-component ecs :belt-mover (assoc belt-mover :moving-item nil) belt-id)
+        (let [belt-dir (belt-direction (ecs/component ecs :transform belt-id))]
+          (assoc-in ent-map
+                    [(utils/ent-map-key belt-trans (:x belt-dir) (:y belt-dir)) :pickupable]
+                    (:moving-item belt-mover))))
+
+      (and (:moving-item belt-mover)
+           (> (:move-ticks belt-mover) 0))
+      (game-updtd-ecs-em
+        game
+        (let [belt-dir (belt-direction (ecs/component ecs :transform belt-id))
+              pickupable-trans (-> (ecs/component ecs :transform (:moving-item belt-mover))
+                                   (move belt-dir (:move-rate belt-mover)))]
+          (-> ecs
+              (ecs/replace-component :transform pickupable-trans (:moving-item belt-mover))
+              (ecs/replace-component :belt-mover
+                                     (update belt-mover :move-ticks dec)
+                                     belt-id)))
+        ent-map)
+
+      :else
+      (game-updtd-ecs-em
+        game
+        (ecs/update-component ecs :energy belt-id #(assoc % :current-amount 0))
+        ent-map)
+      )))
+
+(defn update-belt-loop [belt-id game]
+  "Does not check can-move, used to avoid deadlock, since loops should always move."
+  (let [ecs (:ecs game)
+        ent-map (:entity-map game)
+        belt-mover (ecs/component ecs :belt-mover belt-id)
+        belt-trans (ecs/component ecs :transform belt-id)
+        energy (ecs/component ecs :energy belt-id)]
+    (cond
+      (and (nil? (:moving-item belt-mover))
+           (get-in ent-map [(utils/ent-map-key belt-trans) :pickupable])
+           (== 100 (:current-amount energy)))
+      (game-updtd-ecs-em
+        game
+        (-> ecs
+            (ecs/replace-component
+              :belt-mover
+              (assoc belt-mover :moving-item (get-in ent-map [(utils/ent-map-key belt-trans) :pickupable])
+                                :move-ticks (/ utils/tile-size (:move-rate belt-mover)))
+              belt-id)
+            (ecs/replace-component
+              :energy
+              (assoc energy :current-amount 0)
+              belt-id))
+        ;remove from ent-map so nothing else picks this up. we have started the move.
+        (assoc-in ent-map [(utils/ent-map-key belt-trans) :pickupable] nil))
+
+      (and (:moving-item belt-mover)
+           (zero? (:move-ticks belt-mover)))
+      (game-updtd-ecs-em
+        game
+        (ecs/replace-component ecs :belt-mover (assoc belt-mover :moving-item nil) belt-id)
+        (let [belt-dir (belt-direction (ecs/component ecs :transform belt-id))]
+          (assoc-in ent-map
+                    [(utils/ent-map-key belt-trans (:x belt-dir) (:y belt-dir)) :pickupable]
+                    (:moving-item belt-mover))))
+
+      (and (:moving-item belt-mover)
+           (> (:move-ticks belt-mover) 0))
+      (game-updtd-ecs-em
+        game
+        (let [belt-dir (belt-direction (ecs/component ecs :transform belt-id))
+              pickupable-trans (-> (ecs/component ecs :transform (:moving-item belt-mover))
+                                   (move belt-dir (:move-rate belt-mover)))]
+          (-> ecs
+              (ecs/replace-component :transform pickupable-trans (:moving-item belt-mover))
+              (ecs/replace-component :belt-mover
+                                     (update belt-mover :move-ticks dec)
+                                     belt-id)))
+        ent-map)
+
+      :else
+      (game-updtd-ecs-em
+        game
+        (ecs/update-component ecs :energy belt-id #(assoc % :current-amount 0))
+        ent-map)
+      )))
+
+(defn update-belts [belt-update-fn belt-update-orders game]
+  (loop [belt-groups belt-update-orders
+         gam game]
+    (if (empty? belt-groups)
+      gam
+      (recur (rest belt-groups)
+             (loop [belt-grp (first belt-groups)
+                    g gam]
+               (if (empty? belt-grp)
+                 g
+                 (recur (rest belt-grp)
+                        (belt-update-fn (first belt-grp) g))))))))
+
+(defn run-belts [game]
+  (->> game
+       (update-belts update-belt-loop (:loop-belt-update-orders game))
+       (update-belts update-belt (:belt-update-orders game))))
 
 (defn create []
-  {:function   run
+  {:function   run-belts
+   :is-belt true
    :predicates {:and #{:belt-mover}}})
 
-;(ns proja.screens.main-screen)
-;(require '[proja.entities.core :as e])
-;(update-game! #(assoc % :ecs (e/ore-patch (:ecs game) (:tex-cache game) 5 5)))
-;(update-game! #(assoc % :ecs (e/ore-patch (:ecs game) (:tex-cache game) 5 6)))
-;(update-game! #(assoc % :ecs (e/ore-patch (:ecs game) (:tex-cache game) 4 7)))
-;(update-game! #(assoc % :ecs (e/ore-patch (:ecs game) (:tex-cache game) 4 8)))
-;(update-game! #(assoc % :ecs (e/ore-miner (:ecs game) (:tex-cache game) 5 5)))
-;(update-game! #(assoc % :ecs (e/ore-miner (:ecs game) (:tex-cache game) 8 5)))
-;(update-game! #(assoc % :ecs (e/ore-patch (:ecs game) (:tex-cache game) 0 5)))
-;(update-game! #(assoc % :ecs (e/ore-patch (:ecs game) (:tex-cache game) 7 5)))
-;
-;(loop [ent-ids (range 1 9)]
-;  (if (empty? ent-ids)
-;    nil
-;    (let [id (-> ent-ids (first) (str) (keyword))]
-;      (if (not (or (= id :5) (= id :6)))
-;        (do (let [ent-id id
-;                  k (ent-map-key (-> (ecs/component (:ecs game) :transform ent-id)
-;                                     (get :x)
-;                                     (proja.utils/world->grid))
-;                                 (-> (ecs/component (:ecs game) :transform ent-id)
-;                                     (get :y)
-;                                     (proja.utils/world->grid)))]
-;              (update-game! #(assoc-in % [:entity-map k :ore] #{ent-id})))
-;            (recur (rest ent-ids)))
-;        (recur (rest ent-ids))))))
-;
-;(update-game! #(assoc % :ecs (e/arm (:ecs game) (:tex-cache game) 6 9 0)))
-;(update-game! #(assoc % :ecs (e/belt (:ecs game) (:tex-cache game) 6 10 90)))
-;(update-game! #(assoc % :ecs (e/belt (:ecs game) (:tex-cache game) 7 10 90)))
-;(update-game! #(assoc % :ecs (e/belt (:ecs game) (:tex-cache game) 8 10 90)))
-;(update-game! #(assoc % :ecs (e/belt (:ecs game) (:tex-cache game) 9 10 90)))
-;(update-game! #(assoc % :ecs (e/arm (:ecs game) (:tex-cache game) 6 9 180)))
-
-;(ns proja.screens.main-screen)
-;(require '[proja.entities.core :as e])
-;(update-game! #(assoc % :ecs (e/ore-miner (:ecs game) (:tex-cache game) 1 1)))
-;(update-game! #(assoc % :ecs (e/ore-patch (:ecs game) (:tex-cache game) 1 1)))
-;(update-game! #(assoc % :ecs (e/arm (:ecs game) (:tex-cache game) 2 5 0)))
-;(update-game! #(assoc % :ecs (e/belt (:ecs game) (:tex-cache game) 2 6 90)))
-;(update-game! #(assoc % :ecs (e/belt (:ecs game) (:tex-cache game) 3 6 90)))

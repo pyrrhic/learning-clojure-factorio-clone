@@ -145,21 +145,18 @@
         f (:function sys)
         begin-fn #(if (:begin sys) ((:begin sys) %) %)
         end-fn #(if (:end sys) ((:end sys) %) %)
-        run-sys-fn #(loop [es (:qualifying-ents sys)
-                           g %]
-                     (if (empty? es)
-                       g
-                       (if (component ecs :disabled (first es))
-                         (recur (rest es)
-                                g)
-                         (recur (rest es)
-                                (f (first es) g))
-                         ))
-                     ;(if (empty? es)
-                     ;  g
-                     ;  (recur (rest es)
-                     ;         (f (first es) g)))
-                     )]
+        run-sys-fn (if (:is-belt sys)
+                     #(f %)
+                     #(loop [es (:qualifying-ents sys)
+                             g %]
+                       (if (empty? es)
+                         g
+                         (if (component ecs :disabled (first es))
+                           (recur (rest es)
+                                  g)
+                           (recur (rest es)
+                                  (f (first es) g))
+                           ))))]
     (-> game
         (begin-fn)
         (run-sys-fn)

@@ -15,6 +15,7 @@
             [proja.systems.swing-entity :as swing-entity]
             [proja.systems.belt-move :as belt-move]
             [proja.systems.produce-good :as produce-good]
+            [proja.systems.energy :as energy]
             [proja.ecs.core :as ecs]
             [proja.ui :as ui]
             [proja.utils :as utils]))
@@ -89,6 +90,7 @@
 (defn init-game [_]
   (let [texture-cache (-> (texture-atlas) (ui-skin))]
     (-> (assoc {}
+          :energy-tick -1
           :box2d-world (World. (Vector2. 0 0) true)
           :box2d-debug-renderer (Box2DDebugRenderer.)
           :box2d-debug-matrix (Matrix4.)
@@ -110,20 +112,29 @@
           ;                (tmap/create-grid 25 19 (dissoc (:tex-cache game) :grass-1)))
           :ecs (-> (ecs/init)
                    (ecs/add-system (animate/create))
-                   (ecs/add-system (mine-ore/create))
-                   (ecs/add-system (swing-entity/create))
+                   (ecs/add-system (energy/create))
+
                    (ecs/add-system (belt-move/create))
+                   (ecs/add-system (mine-ore/create))
+
+                   (ecs/add-system (swing-entity/create))
                    (ecs/add-system (produce-good/create))
                    )))))
 
 (defn reset-ecs-em []
   (do (update-game! #(assoc % :ecs (-> (ecs/init)
                                        (ecs/add-system (animate/create))
-                                       (ecs/add-system (mine-ore/create))
-                                       (ecs/add-system (swing-entity/create))
+                                       (ecs/add-system (energy/create))
+
                                        (ecs/add-system (belt-move/create))
+                                       (ecs/add-system (mine-ore/create))
+
+                                       (ecs/add-system (swing-entity/create))
                                        (ecs/add-system (produce-good/create))
-                                       )))
+                                       )
+                              :energy-tick -1
+                              :belt-update-orders nil
+                              :loop-belt-update-orders nil))
       (update-game! #(assoc % :entity-map {}))))
 
 (defn pause []

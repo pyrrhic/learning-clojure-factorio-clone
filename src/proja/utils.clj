@@ -1,5 +1,7 @@
 (ns proja.utils)
 
+(def energy-tick 30)
+
 (def tile-size 32)
 
 (defn world->grid [n]

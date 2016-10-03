@@ -46,14 +46,15 @@
                       (/ (.getRegionWidth texture) 2)
                       (/ (.getRegionHeight texture) 2))
          (c/renderable texture 1)
+         (c/energy 100)
          (c/animation :mining
                       (c/frames-h :mining
-                                  [(c/frame-h (:mining-building-1 tex-cache) 0.1)
-                                   (c/frame-h (:mining-building-2 tex-cache) 0.1)
-                                   (c/frame-h (:mining-building-3 tex-cache) 0.1)]
+                                  [(c/frame-h (:mining-building-1 tex-cache) 0.01)
+                                   (c/frame-h (:mining-building-2 tex-cache) 0.01)
+                                   (c/frame-h (:mining-building-3 tex-cache) 0.01)]
                                   true))
          (c/miner x y (.getRegionWidth texture) (.getRegionHeight texture) ;texture
-                  1                                         ;mining rate
+                  0.5                                         ;mining rate
                   (ore-miner-x-output rotation)
                   (ore-miner-y-output rotation)
                   )]))))
@@ -123,6 +124,7 @@
                                             (/ (.getRegionHeight texture) 2))
                                (c/renderable texture -1)
                                (c/belt-mover)
+                               (c/energy 100)
                                (c/animation :move
                                             (c/frames-h :move
                                                         [(c/frame-h (:belt-1 tex-cache) 0.05)

@@ -88,7 +88,9 @@
 (defn belt-mover []
   (ecs/create-component :belt-mover
                         {:state     :idle                   ;:idle, :moving
-                         :move-rate 1                       ;1 pixel per frame
+                         :move-rate 2                       ;pixels per frame
+                         :moving-item nil                   ;id of entity being moved
+                         :move-ticks 0                      ;used to figure out how many moves are left
                          }))
 
 (defn container []
@@ -149,6 +151,11 @@
   "temp component"
   {:x x-grid
    :y y-grid})
+
+(defn energy [max-amount]
+  (ecs/create-component :energy
+                        {:current-amount 0
+                         :max-amount max-amount}))
 
 ;(defn warehouse-request-queue []
 ;  (ecs/create-component :warehouse-request-queue

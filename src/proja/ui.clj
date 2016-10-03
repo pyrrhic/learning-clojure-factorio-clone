@@ -4,7 +4,8 @@
             [proja.components.core :as c]
             [proja.entities.core :as e]
             [proja.screens.game :as game]
-            [proja.systems.render :as render])
+            [proja.systems.render :as render]
+            [proja.belt-group :as belt-group])
   (:import (com.badlogic.gdx.scenes.scene2d.utils ChangeListener)
            (com.badlogic.gdx.scenes.scene2d.ui TextButton Table)
            (com.badlogic.gdx.scenes.scene2d Stage)
@@ -301,9 +302,11 @@
                 (-> (assoc game :ecs new-ecs)
                     (sync-animation (utils/my-keyword (ecs/latest-ent-id new-ecs)))
                     (add-building transform renderable)
-                    (clear-clicks)))
+                    (clear-clicks)
+                    (belt-group/ordered-belt-groups)))
               game)))
-      game)))
+      (clear-clicks game)
+      )))
 
 (defn set-build-mode [game bm]
   (assoc-in game [:ui :build-mode] bm))
