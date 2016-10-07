@@ -76,14 +76,15 @@
 
 (defn swingable [input-loc output-loc]
   (ecs/create-component :swingable
-                        {:state :idle                       ;:idle, :swing, :swing-back
-                         :held-item nil
-                         :input-loc input-loc               ;{:x x :y y}
-                         :output-loc output-loc             ;{:x x :y y}
-                         :input-em-key (utils/ent-map-key (:x input-loc)
-                                                          (:y input-loc))
+                        {:held-item     nil
+                         :input-loc     input-loc               ;{:x x :y y}
+                         :output-loc    output-loc             ;{:x x :y y}
+                         :input-em-key  (utils/ent-map-key (:x input-loc)
+                                                           (:y input-loc))
                          :output-em-key (utils/ent-map-key (:x output-loc)
-                                                           (:y output-loc))}))
+                                                           (:y output-loc))
+                         :actions       (vector :try-pickup :try-drop)
+                         :action-idx    0}))
 
 (defn belt-mover []
   (ecs/create-component :belt-mover
@@ -117,10 +118,10 @@
                          ;values are sets of ent-ids
                          :items {}}))
 
-(defn recipe-h [inputs output duration size]
+(defn recipe-h [inputs output required-energy size]
   {:inputs inputs
    :output output
-   :duration duration
+   :required-energy required-energy
    :size size})
 
 (defn recipes-h [recipe-data]
@@ -155,7 +156,8 @@
 (defn energy [max-amount]
   (ecs/create-component :energy
                         {:current-amount 0
-                         :max-amount max-amount}))
+                         :max-amount max-amount
+                         }))
 
 ;(defn warehouse-request-queue []
 ;  (ecs/create-component :warehouse-request-queue

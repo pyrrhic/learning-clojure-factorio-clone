@@ -24,7 +24,7 @@
 
 ;TODO this is going to break if i ever re-order the systems past the 4th one...
 (defn get-all-belt-ids [ecs]
-  (-> ecs :systems (nth 2) :qualifying-ents))
+  (-> ecs :systems (nth 3) :qualifying-ents))
 
 (defn belt-facing-this? [this-belt belt]
   {:pre [ ;only one belt per tile allowed. checking for fat fingering.

@@ -1,5 +1,6 @@
 (ns proja.systems.energy
-  (:require [proja.ecs.core :as ecs]))
+  (:require [proja.ecs.core :as ecs]
+            [proja.screens.game :as ga]))
 
 (defn run [ent-id game]
   (let [ecs (:ecs game)

@@ -188,6 +188,10 @@
   (-> (assoc-in game [:inputs :mouse-click-x] nil)
       (assoc-in [:inputs :mouse-click-y] nil)))
 
+(defn clear-dragged [game]
+  (-> (assoc-in game [:inputs :mouse-dragged-x] nil)
+      (assoc-in [:inputs :mouse-dragged-y] nil)))
+
 (defn tile-aligned-mouse [inputs camera]
   (let [mx (-> inputs :mouse-x)
         my (->> inputs :mouse-y (- (.getHeight Gdx/graphics)))
@@ -195,11 +199,29 @@
     {:x (-> (quot (.-x world-v3) utils/tile-size) (* utils/tile-size))
      :y (-> (quot (.-y world-v3) utils/tile-size) (* utils/tile-size))}))
 
-(defn add-building [game transform renderable]
-  (assoc game :entity-map (utils/add-building (:entity-map game)
-                                              (utils/my-keyword (ecs/latest-ent-id (:ecs game)))
-                                              transform
-                                              renderable)))
+(defn tile-aligned-mouse-belt [inputs camera]
+  (let [mx (if (-> inputs :mouse-dragged-x) (-> inputs :mouse-dragged-x) (-> inputs :mouse-x))
+        ;my (->> inputs :mouse-y (- (.getHeight Gdx/graphics)))
+        my (->> (if (-> inputs :mouse-dragged-y) (-> inputs :mouse-dragged-y) (-> inputs :mouse-y))
+                (- (.getHeight Gdx/graphics)))
+        world-v3 (-> camera (.unproject (Vector3. mx my 0)))]
+    {:x (-> (quot (.-x world-v3) utils/tile-size) (* utils/tile-size))
+     :y (-> (quot (.-y world-v3) utils/tile-size) (* utils/tile-size))}))
+
+(defn add-building
+  ([game transform x-offset y-offset width height]
+   (assoc game :entity-map (utils/add-building (:entity-map game)
+                                               (utils/my-keyword (ecs/latest-ent-id (:ecs game)))
+                                               transform
+                                               x-offset
+                                               y-offset
+                                               width
+                                               height)))
+  ([game transform renderable]
+   (assoc game :entity-map (utils/add-building (:entity-map game)
+                                               (utils/my-keyword (ecs/latest-ent-id (:ecs game)))
+                                               transform
+                                               renderable))))
 
 (defn placeable? [tile-x tile-y entity-map type]
   (let [k (utils/ent-map-key tile-x tile-y)
@@ -207,59 +229,138 @@
     (if v (zero? (count v)) true)))
 
 (defn make-ore-miner [game]
-  (let [{tile-align-x :x
-         tile-align-y :y} (tile-aligned-mouse (:inputs game) (:camera game))
-        tex-cache (:tex-cache game)
-        transform (:data (c/transform tile-align-x
-                                      tile-align-y
-                                      (build-mode-rotation game)
-                                      (/ (.getRegionWidth (:mining-building-1 tex-cache)) 2)
-                                      (/ (.getRegionWidth (:mining-building-1 tex-cache)) 2)))
-        renderable (:data (c/renderable (:mining-building-1 tex-cache)))]
-    (if (not (utils/collides-with-a-building? (:entity-map game)
-                                              transform
-                                              renderable))
+  (if (or (-> game :inputs :mouse-dragged-x)
+          (-> game :inputs :mouse-x))
+    (let [{tile-align-x :x
+           tile-align-y :y} (tile-aligned-mouse-belt (:inputs game) (:camera game))
+          tex-cache (:tex-cache game)
+          texture (:mining-building-1 tex-cache)
+          transform (:data (c/transform tile-align-x
+                                        tile-align-y
+                                        (build-mode-rotation game)
+                                        (/ (.getRegionWidth texture) 2)
+                                        (/ (.getRegionWidth texture) 2)))
+          renderable (:data (c/renderable texture))]
+      (if (not (utils/collides-with-a-building? (:entity-map game)
+                                                transform
+                                                renderable))
+        (do (single-draw transform renderable (:batch game))
+            (let [down-x (-> game :inputs :mouse-down-x)
+                  down-y (-> game :inputs :mouse-down-y)
+                  dragged-x (-> game :inputs :mouse-dragged-x)
+                  dragged-y (-> game :inputs :mouse-dragged-y)]
+              (if (or (and down-x down-y) (and dragged-x dragged-y))
+                (let [new-ecs (e/ore-miner (:ecs game)
+                                           tex-cache
+                                           (utils/world->grid tile-align-x)
+                                           (utils/world->grid tile-align-y)
+                                           (build-mode-rotation game))]
+                  (-> (assoc game :ecs new-ecs)
+                      ;(sync-animation (utils/my-keyword (ecs/latest-ent-id new-ecs)))
+                      (add-building transform renderable)
+                      ;(belt-group/ordered-belt-groups)
+                      ))
+                game)))
+        game))
+    game))
+
+;(if (or (-> game :inputs :mouse-dragged-x)
+;        (-> game :inputs :mouse-x))
+;  (let [{tile-align-x :x
+;         tile-align-y :y} (tile-aligned-mouse-belt (:inputs game) (:camera game))
+;        tex-cache (:tex-cache game)
+;        texture (:belt-1 tex-cache)
+;        transform (:data (c/transform tile-align-x
+;                                      tile-align-y
+;                                      (build-mode-rotation game)
+;                                      (/ (.getRegionWidth texture) 2)
+;                                      (/ (.getRegionWidth texture) 2)))
+;        renderable (:data (c/renderable texture))]
+;    (println tile-align-x tile-align-y)
+;    (if (not (utils/collides-with-a-building? (:entity-map game)
+;                                              transform
+;                                              renderable))
+;      (do (single-draw transform renderable (:batch game))
+;          (let [down-x (-> game :inputs :mouse-down-x)
+;                down-y (-> game :inputs :mouse-down-y)
+;                dragged-x (-> game :inputs :mouse-dragged-x)
+;                dragged-y (-> game :inputs :mouse-dragged-y)]
+;            (if (or (and down-x down-y) (and dragged-x dragged-y))
+;              (let [new-ecs (e/belt (:ecs game)
+;                                    tex-cache
+;                                    (utils/world->grid tile-align-x)
+;                                    (utils/world->grid tile-align-y)
+;                                    (build-mode-rotation game))]
+;                (-> (assoc game :ecs new-ecs)
+;                    (sync-animation (utils/my-keyword (ecs/latest-ent-id new-ecs)))
+;                    (add-building transform renderable)
+;                    (belt-group/ordered-belt-groups)))
+;              game)))
+;      game))
+;  game)
+
+(defn make-ore-patch [game]
+  (if (or (-> game :inputs :mouse-dragged-x)
+          (-> game :inputs :mouse-x))
+    (let [{tile-align-x :x
+           tile-align-y :y} (tile-aligned-mouse-belt (:inputs game) (:camera game))
+          tex-cache (:tex-cache game)
+          texture (:ore-patch tex-cache)
+          transform (:data (c/transform tile-align-x
+                                        tile-align-y
+                                        (build-mode-rotation game)
+                                        (/ (.getRegionWidth texture) 2)
+                                        (/ (.getRegionWidth texture) 2)))
+          renderable (:data (c/renderable texture))]
       (do (single-draw transform renderable (:batch game))
-          (let [click-x (-> game :inputs :mouse-click-x)
-                click-y (-> game :inputs :mouse-click-y)]
-            (if (and click-x click-y)
-              (let [new-ecs (e/ore-miner (:ecs game)
+          (let [down-x (-> game :inputs :mouse-down-x)
+                down-y (-> game :inputs :mouse-down-y)
+                dragged-x (-> game :inputs :mouse-dragged-x)
+                dragged-y (-> game :inputs :mouse-dragged-y)]
+            (if (or (and down-x down-y) (and dragged-x dragged-y))
+              (let [new-ecs (e/ore-patch (:ecs game)
                                          tex-cache
                                          (utils/world->grid tile-align-x)
                                          (utils/world->grid tile-align-y)
                                          (build-mode-rotation game))]
                 (-> (assoc game :ecs new-ecs)
-                    (add-building transform renderable)
-                    (clear-clicks)))
+                    (assoc-in [:entity-map
+                               (utils/ent-map-key (utils/world->grid tile-align-x)
+                                                  (utils/world->grid tile-align-y))
+                               :ore]
+                              #{(utils/my-keyword (ecs/latest-ent-id new-ecs))})
+                    ;(sync-animation (utils/my-keyword (ecs/latest-ent-id new-ecs)))
+                    ;(add-building transform renderable)
+                    ;(belt-group/ordered-belt-groups)
+                    ))
               game)))
-      game)))
-
-(defn make-ore-patch [game]
-  (let [{tile-align-x :x
-         tile-align-y :y} (tile-aligned-mouse (:inputs game) (:camera game))
-        tex-cache (:tex-cache game)]
-    (if (placeable? tile-align-x tile-align-y (:entity-map game) :ore)
-      (let [transform (:data (c/transform tile-align-x
-                                          tile-align-y
-                                          0 0 0))
-            renderable (:data (c/renderable (:ore-patch tex-cache)))]
-        (single-draw transform renderable (:batch game))
-        (let [click-x (-> game :inputs :mouse-click-x)
-              click-y (-> game :inputs :mouse-click-y)]
-          (if (and click-x click-y)
-            (let [new-ecs (e/ore-patch (:ecs game)
-                                       tex-cache
-                                       (utils/world->grid tile-align-x)
-                                       (utils/world->grid tile-align-y))]
-              (-> (assoc game :ecs new-ecs)
-                  (assoc-in [:entity-map
-                             (utils/ent-map-key (utils/world->grid tile-align-x)
-                                                (utils/world->grid tile-align-y))
-                             :ore]
-                            #{(utils/my-keyword (ecs/latest-ent-id new-ecs))})
-                  (clear-clicks)))
-            game)))
-      game)))
+      #_(if (not (utils/collides-with-a-building? (:entity-map game)
+                                                transform
+                                                renderable))
+        (do (single-draw transform renderable (:batch game))
+            (let [down-x (-> game :inputs :mouse-down-x)
+                  down-y (-> game :inputs :mouse-down-y)
+                  dragged-x (-> game :inputs :mouse-dragged-x)
+                  dragged-y (-> game :inputs :mouse-dragged-y)]
+              (if (or (and down-x down-y) (and dragged-x dragged-y))
+                (let [new-ecs (e/ore-patch (:ecs game)
+                                           tex-cache
+                                           (utils/world->grid tile-align-x)
+                                           (utils/world->grid tile-align-y)
+                                           (build-mode-rotation game))]
+                  (-> (assoc game :ecs new-ecs)
+                      (assoc-in [:entity-map
+                                 (utils/ent-map-key (utils/world->grid tile-align-x)
+                                                    (utils/world->grid tile-align-y))
+                                 :ore]
+                                #{(utils/my-keyword (ecs/latest-ent-id new-ecs))})
+                      ;(sync-animation (utils/my-keyword (ecs/latest-ent-id new-ecs)))
+                      ;(add-building transform renderable)
+                      ;(belt-group/ordered-belt-groups)
+                      ))
+                game)))
+        game))
+    game))
 
 (defn sync-animation [game ent-id]
   (let [ecs (:ecs game)
@@ -277,36 +378,102 @@
       game)))
 
 (defn make-belt [game]
-  (let [{tile-align-x :x
+  (if (or (-> game :inputs :mouse-dragged-x)
+          (-> game :inputs :mouse-x))
+    (let [{tile-align-x :x
+           tile-align-y :y} (tile-aligned-mouse-belt (:inputs game) (:camera game))
+          tex-cache (:tex-cache game)
+          texture (:belt-1 tex-cache)
+          transform (:data (c/transform tile-align-x
+                                        tile-align-y
+                                        (build-mode-rotation game)
+                                        (/ (.getRegionWidth texture) 2)
+                                        (/ (.getRegionWidth texture) 2)))
+          renderable (:data (c/renderable texture))]
+      (if (not (utils/collides-with-a-building? (:entity-map game)
+                                                transform
+                                                renderable))
+        (do (single-draw transform renderable (:batch game))
+            (let [down-x (-> game :inputs :mouse-down-x)
+                  down-y (-> game :inputs :mouse-down-y)
+                  dragged-x (-> game :inputs :mouse-dragged-x)
+                  dragged-y (-> game :inputs :mouse-dragged-y)]
+              (if (or (and down-x down-y) (and dragged-x dragged-y))
+                (let [new-ecs (e/belt (:ecs game)
+                                      tex-cache
+                                      (utils/world->grid tile-align-x)
+                                      (utils/world->grid tile-align-y)
+                                      (build-mode-rotation game))]
+                  (-> (assoc game :ecs new-ecs)
+                      (sync-animation (utils/my-keyword (ecs/latest-ent-id new-ecs)))
+                      (add-building transform renderable)
+                      (belt-group/ordered-belt-groups)))
+                game)))
+        game))
+    game))
+
+(defn make-arm [game]
+  (if (or (-> game :inputs :mouse-dragged-x)
+          (-> game :inputs :mouse-x))
+    (let [{tile-align-x :x
+           tile-align-y :y} (tile-aligned-mouse-belt (:inputs game) (:camera game))
+          tex-cache (:tex-cache game)
+          texture (:arm-1 tex-cache)
+          transform (:data (c/transform tile-align-x
+                                        tile-align-y
+                                        (build-mode-rotation game)
+                                        16
+                                        (+ 16 32)))
+          renderable (:data (c/renderable texture))]
+      (if (not (utils/collides-with-a-building? (:entity-map game)
+                                                transform
+                                                1 1))
+        (do (single-draw (update transform :y #(- % 32)) renderable (:batch game))
+            (let [down-x (-> game :inputs :mouse-down-x)
+                  down-y (-> game :inputs :mouse-down-y)
+                  dragged-x (-> game :inputs :mouse-dragged-x)
+                  dragged-y (-> game :inputs :mouse-dragged-y)]
+              (if (or (and down-x down-y) (and dragged-x dragged-y))
+                (let [new-ecs (e/arm (:ecs game)
+                                     tex-cache
+                                     (utils/world->grid tile-align-x)
+                                     (utils/world->grid tile-align-y)
+                                     (build-mode-rotation game))]
+                  (-> (assoc game :ecs new-ecs)
+                      ;(sync-animation (utils/my-keyword (ecs/latest-ent-id new-ecs)))
+                      (add-building transform 0 0 1 1)
+                      ;(belt-group/ordered-belt-groups)
+                      ))
+                game)))
+        game))
+    game)
+
+  #_(let [{tile-align-x :x
          tile-align-y :y} (tile-aligned-mouse (:inputs game) (:camera game))
         tex-cache (:tex-cache game)
-        texture (:belt-1 tex-cache)
         transform (:data (c/transform tile-align-x
                                       tile-align-y
                                       (build-mode-rotation game)
-                                      (/ (.getRegionWidth texture) 2)
-                                      (/ (.getRegionWidth texture) 2)))
-        renderable (:data (c/renderable texture))]
+                                      16
+                                      (+ 16 32)))
+        renderable (:data (c/renderable (:arm-1 tex-cache)))]
     (if (not (utils/collides-with-a-building? (:entity-map game)
                                               transform
-                                              renderable))
-      (do (single-draw transform renderable (:batch game))
+                                              1 1))
+      (do (single-draw (update transform :y #(- % 32)) renderable (:batch game))
           (let [click-x (-> game :inputs :mouse-click-x)
                 click-y (-> game :inputs :mouse-click-y)]
             (if (and click-x click-y)
-              (let [new-ecs (e/belt (:ecs game)
-                                    tex-cache
-                                    (utils/world->grid tile-align-x)
-                                    (utils/world->grid tile-align-y)
-                                    (build-mode-rotation game))]
+              (let [new-ecs (e/arm (:ecs game)
+                                   tex-cache
+                                   (utils/world->grid tile-align-x)
+                                   (utils/world->grid tile-align-y)
+                                   (build-mode-rotation game))]
                 (-> (assoc game :ecs new-ecs)
-                    (sync-animation (utils/my-keyword (ecs/latest-ent-id new-ecs)))
-                    (add-building transform renderable)
-                    (clear-clicks)
-                    (belt-group/ordered-belt-groups)))
+                    (add-building transform 0 0 1 1)
+                    (clear-clicks)))
               game)))
-      (clear-clicks game)
-      )))
+      (clear-clicks game))))
 
 (defn set-build-mode [game bm]
   (assoc-in game [:ui :build-mode] bm))
@@ -330,21 +497,42 @@
 (defn input-logic [game]
   (let [inputs (:inputs game)]
     (cond
-      (:escape inputs) (set-build-mode game nil)
-      (-> inputs :key-typed :r) (rotate-build-mode-rotation game)
-      (and (nil? (build-mode game)) (:mouse-click-x inputs)) (clear-clicks game)
-      :else game)))
+      (:escape inputs)
+      (-> (set-build-mode game nil)
+          (#(assoc-in % [:ui :rotation] 0)))
+
+      (-> inputs :key-typed :r)
+      (rotate-build-mode-rotation game)
+
+      ;(and (nil? (build-mode game)) (:mouse-click-x inputs))
+      ;(clear-clicks game)
+
+      :else
+      game
+
+      ;:else
+      ;(assoc game :inputs {:mouse-x (:mouse-x game)
+      ;                     :mouse-y (:mouse-y game)})
+      )))
+
+(defn clear-most-inputs [game]
+  (if (:mouse-dragged-x (:inputs game))
+    (assoc game :inputs {})
+    (assoc game :inputs {:mouse-x (:mouse-x (:inputs game))
+                         :mouse-y (:mouse-y (:inputs game))})))
 
 (defn run [game]
   (let [g (input-logic game)]
-    (if (empty? (:inputs g))
+    (if (nil? (get-in g [:ui :build-mode]))
       g
-      (case (build-mode g)
-        :ore-patch (make-ore-patch g)
-        :ore-miner (make-ore-miner g)
-        :belt (make-belt g)
-        nil g
-        ))))
+      (-> (case (build-mode g)
+            :ore-patch (make-ore-patch g)
+            :ore-miner (make-ore-miner g)
+            :belt (make-belt g)
+            :arm (make-arm g)
+            nil g)
+          (clear-most-inputs)
+          ))))
 
 (defn btn [text skin build-mode]
   "text = String
@@ -352,6 +540,7 @@
   (let [btn (TextButton. text skin)
         listener (proxy [ChangeListener] []
                    (changed [event actor]
+                     (alter-var-root (var game/g) #(assoc % :inputs {}))
                      (alter-var-root (var game/g) #(set-build-mode % build-mode))))]
     (.addListener btn listener)
     btn))
@@ -372,6 +561,7 @@
         (.add (btn "Ore Patch" skin :ore-patch))
         (.add (btn "Ore Miner" skin :ore-miner))
         (.add (btn "Belt" skin :belt))
+        (.add (btn "Arm" skin :arm))
         ))))
 
 ;(ns proja.ui)

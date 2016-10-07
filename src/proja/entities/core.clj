@@ -13,10 +13,10 @@
      (c/renderable texture)
      (c/storable :ore 1)]))
 
-(defn ore-patch [ecs tex-cache x y]
+(defn ore-patch [ecs tex-cache x y rotation]
   (let [texture (:ore-patch tex-cache)]
     (:ecs (ecs/add-entity ecs [(c/transform (u/grid->world x) (u/grid->world y)
-                                            0               ;rotation
+                                            rotation
                                             (/ (.getRegionWidth texture) 2)
                                             (/ (.getRegionHeight texture) 2))
                                (c/renderable texture -2)
@@ -100,6 +100,7 @@
                                (c/renderable texture 2)
                                (c/swingable (input-loc x y rotation)
                                             (output-loc x y rotation))
+                               (c/energy 100)
                                (c/animation nil
                                             (c/frames-h :swing
                                                         [(c/frame-h (:arm-1 tex-cache) 0.05)
@@ -142,14 +143,6 @@
                                (c/renderable texture 1)
                                (c/container)]))))
 
-(defn gun [x y]
-  [(c/transform (u/grid->world x) (u/grid->world y)
-                0
-                0
-                0)
-   (c/storable :gun
-               10)])
-
 (defn bullet [x y]
   [(c/transform (u/grid->world x) (u/grid->world y)
                 0
@@ -167,18 +160,15 @@
                                (c/renderable texture 1)
                                (c/input-container)
                                (c/output-container)
+                               (c/energy 100)
                                (c/producer
                                  (c/recipes-h [:bullet (c/recipe-h {:ore 1}
                                                                    {:bullet 1}
-                                                                   1
-                                                                   1)
-                                               :gun (c/recipe-h {:ore 5}
-                                                                {:gun 1}
-                                                                60
-                                                                1)]))
+                                                                   100
+                                                                   1)]))
                                (c/animation nil
                                             (c/frames-h :produce
                                                         [(c/frame-h (:factory-1 tex-cache) 0.05)
                                                          (c/frame-h (:factory-2 tex-cache) 0.05)
                                                          (c/frame-h (:factory-3 tex-cache) 0.05)]
-                                                        true))]))))
+                                                        false))]))))

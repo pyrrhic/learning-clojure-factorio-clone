@@ -140,7 +140,7 @@
   Otherwise those entities will never be picked up by any systems."
   (update ecs :systems #(conj % (assoc system :qualifying-ents #{}))))
 
-(defn- run-system [sys game]
+(defn run-system [sys game]
   (let [ecs (:ecs game)
         f (:function sys)
         begin-fn #(if (:begin sys) ((:begin sys) %) %)

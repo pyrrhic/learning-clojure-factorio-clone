@@ -40,7 +40,10 @@
 
 (defn input-processor []
   (reify InputProcessor
-    (touchDown [this x y pointer button] false)
+    (touchDown [this x y pointer button]
+      (alter-var-root (var game/g) #(assoc-in % [:inputs :mouse-down-x] x))
+      (alter-var-root (var game/g) #(assoc-in % [:inputs :mouse-down-y] (- (.getHeight Gdx/graphics) y)))
+      true)
     (keyDown [this keycode]
       (alter-var-root (var game/g) #(assoc-in % [:inputs (-> keycode
                                                            (Input$Keys/toString)
@@ -64,8 +67,13 @@
     (touchUp [this x y pointer button]
       (alter-var-root (var game/g) #(assoc-in % [:inputs :mouse-click-x] x))
       (alter-var-root (var game/g) #(assoc-in % [:inputs :mouse-click-y] (- (.getHeight Gdx/graphics) y)))
+      (alter-var-root (var game/g) #(assoc-in % [:inputs :mouse-dragged-x] nil))
+      (alter-var-root (var game/g) #(assoc-in % [:inputs :mouse-dragged-y] nil))
       true)
-    (touchDragged [this x y pointer] false)
+    (touchDragged [this x y pointer]
+      (alter-var-root (var game/g) #(assoc-in % [:inputs :mouse-dragged-x] x))
+      (alter-var-root (var game/g) #(assoc-in % [:inputs :mouse-dragged-y] (- (.getHeight Gdx/graphics) y)))
+      true)
     (mouseMoved [this x y]
       (alter-var-root (var game/g) #(assoc-in % [:inputs :mouse-x] x))
       (alter-var-root (var game/g) #(assoc-in % [:inputs :mouse-y] (- (.getHeight Gdx/graphics) y)))
@@ -114,10 +122,10 @@
                    (ecs/add-system (animate/create))
                    (ecs/add-system (energy/create))
 
+                   (ecs/add-system (swing-entity/create))
                    (ecs/add-system (belt-move/create))
                    (ecs/add-system (mine-ore/create))
 
-                   (ecs/add-system (swing-entity/create))
                    (ecs/add-system (produce-good/create))
                    )))))
 
@@ -126,10 +134,10 @@
                                        (ecs/add-system (animate/create))
                                        (ecs/add-system (energy/create))
 
+                                       (ecs/add-system (swing-entity/create))
                                        (ecs/add-system (belt-move/create))
                                        (ecs/add-system (mine-ore/create))
 
-                                       (ecs/add-system (swing-entity/create))
                                        (ecs/add-system (produce-good/create))
                                        )
                               :energy-tick -1
@@ -158,16 +166,17 @@
       (when (< last-fps 30)
         (println "frame rate is dropping below 30 : " last-fps " @ " (new java.util.Date))))))
 
+(def cam-movespeed 5)
 (defn move-camera [{inputs :inputs, cam :camera}]
   (do
     (when (:right inputs)
-      (.translate cam 1 0))
+      (.translate cam cam-movespeed 0))
     (when (:left inputs)
-      (.translate cam -1 0))
+      (.translate cam (* -1 cam-movespeed) 0))
     (when (:up inputs)
-      (.translate cam 0 1))
+      (.translate cam 0 cam-movespeed))
     (when (:down inputs)
-      (.translate cam 0 -1))
+      (.translate cam 0 (* -1 cam-movespeed)))
     ))
 
 (defn update-cam! [game]
@@ -190,6 +199,19 @@
         (recur (do (.step ^World (:box2d-world game) 0.022 6 2)
                    (- acc 0.022)))))))
 
+(def old-frames [])
+
+(def last-frame nil)
+
+(defn run [n-times]
+  (loop [n 0]
+    (if (== n n-times)
+      (do (def last-frame game/g)
+          nil)
+      (recur (do (update-game! #(ecs/run %))
+                 (inc n)))
+      )))
+
 (defn game-loop [game]
   (fps-logic)
   (do (clear-screen)
@@ -203,6 +225,10 @@
                ^World (:box2d-world game)
                (:box2d-debug-matrix game))
 
+      (if (== 9000 (count old-frames))
+        (def old-frames (conj (vec (rest old-frames)) game))
+        (def old-frames (conj old-frames game)))
+
       (if (:paused game)
         (-> game
             ;(ecs/run)
@@ -215,7 +241,8 @@
             (update-cam!)
             (update-stage!)
             (update-physics)
-            ))))
+            ))
+  ))
 
 (defn screen []
   (reify Screen

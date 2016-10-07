@@ -21,7 +21,17 @@
          recipe-size)
       (:max-size output-container)))
 
-(defn- ready-to-start? [producer input-container-items output-container animation]
+(defn- ready? [producer input-container-items output-container animation energy]
+  (let [current-recipe (:current-recipe producer)
+        curr-recipe-data (if (nil? current-recipe) nil (-> producer :recipes current-recipe))]
+    (and current-recipe
+         (nil? (:current-animation animation))
+         (has-all-inputs? (:inputs curr-recipe-data) input-container-items)
+         (== (:remaining-duration producer) (:duration curr-recipe-data))
+         (output-has-space? (:size curr-recipe-data) output-container)
+         (== 100 (:current-amount energy)))))
+
+(defn- waiting? [producer input-container-items output-container animation]
   (let [current-recipe (:current-recipe producer)
         curr-recipe-data (if (nil? current-recipe) nil (-> producer :recipes current-recipe))]
     (and current-recipe
@@ -48,8 +58,7 @@
   "Everything will be created at 0,0 because they're all disabled so who cares.
   Expectation is that they will be moved when re-enabled."
   (let [components (case recipe-type
-                     :bullet (e/bullet 0 0)
-                     :gun (e/gun 0 0))
+                     :bullet (e/bullet 0 0))
         ecs-id (ecs/add-entity ecs components)
         storable (ecs/component (:ecs ecs-id) :storable (:ent-id ecs-id))]
     (-> (ecs/disable-entity (:ecs ecs-id) (:ent-id ecs-id))
@@ -73,26 +82,27 @@
   (let [ecs (:ecs game)
         ent-map (:entity-map game)
         producer (ecs/component ecs :producer ent-id)
-        animation (ecs/component ecs :animation ent-id)
         ecs-ent-map (cond
-                      (ready-to-start? producer
-                                       (:items (ecs/component ecs :input-container ent-id))
-                                       (ecs/component ecs :output-container ent-id)
-                                       (ecs/component ecs :animation ent-id))
-                      {:ecs     (start-animation ecs :produce ent-id)
-                       :ent-map ent-map}
-
-                      (producing? producer animation)
-                      {:ecs     (keep-producing ecs producer (:delta game) ent-id)
-                       :ent-map ent-map}
-
-                      (done-producing? producer)
+                      (ready? producer
+                              (:items (ecs/component ecs :input-container ent-id))
+                              (ecs/component ecs :output-container ent-id)
+                              (ecs/component ecs :animation ent-id)
+                              (ecs/component ecs :energy ent-id))
                       {:ecs     (-> (create-entity ecs (:current-recipe producer) ent-id)
                                     (stop-animation ent-id)
-                                    (reset-curr-recipe producer ent-id))
+                                    (reset-curr-recipe producer ent-id)
+                                    (start-animation :produce ent-id))
                        :ent-map ent-map}
 
-                      ;it's doing nothing.
+                      ;if ready to start but not enough energy
+                      ;(waiting? producer
+                      ;          (:items (ecs/component ecs :input-container ent-id))
+                      ;          (ecs/component ecs :output-container ent-id)
+                      ;          (ecs/component ecs :animation ent-id))
+                      ;{:ecs ecs
+                      ; :ent-map ent-map}
+
+                      ;it's doing nothing, need to deplete energy to stay synced? no reason to stay synced
                       :else
                       {:ecs ecs
                        :ent-map ent-map}

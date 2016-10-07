@@ -2,6 +2,16 @@
 
 (def g {})
 
+(defn update-game! [func]
+  "Expects a function with 1 parameter which will be the game map. The function must return the updated game map."
+  (alter-var-root (var g) #(func %))
+  nil)
+
+(defn pause []
+  (update-game! #(assoc % :paused true)))
+
+(defn resume []
+  (update-game! #(assoc % :paused false)))
 
 ;(do
 ;  (let [body-def (doto (BodyDef.))
