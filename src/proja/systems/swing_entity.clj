@@ -9,9 +9,9 @@
 (defn- container-type [entity-map loc]
   (let [tile (get entity-map loc)]
     (cond
-      (and (contains? tile :pickupable) (:pickupable tile)) :pickupable
-      (contains? tile :container) :container
-      (contains? tile :input-container) :input-container
+      (and (:pickupable tile) (:pickupable tile)) :pickupable
+      (:container tile) :container
+      (:input-container tile) :input-container
       :default :pickupable)))
 
 (defn- get-item-id [entity-map loc]

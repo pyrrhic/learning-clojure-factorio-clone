@@ -27,17 +27,16 @@
     (and current-recipe
          (nil? (:current-animation animation))
          (has-all-inputs? (:inputs curr-recipe-data) input-container-items)
-         (== (:remaining-duration producer) (:duration curr-recipe-data))
          (output-has-space? (:size curr-recipe-data) output-container)
          (== 100 (:current-amount energy)))))
 
-(defn- waiting? [producer input-container-items output-container animation]
+(defn- waiting? [producer input-container-items output-container animation energy]
   (let [current-recipe (:current-recipe producer)
         curr-recipe-data (if (nil? current-recipe) nil (-> producer :recipes current-recipe))]
     (and current-recipe
+         (< (:current-amount energy) 100)
          (nil? (:current-animation animation))
          (has-all-inputs? (:inputs curr-recipe-data) input-container-items)
-         (== (:remaining-duration producer) (:duration curr-recipe-data))
          (output-has-space? (:size curr-recipe-data) output-container))))
 
 (defn- start-animation [ecs animation-name ent-id]
@@ -62,10 +61,32 @@
         ecs-id (ecs/add-entity ecs components)
         storable (ecs/component (:ecs ecs-id) :storable (:ent-id ecs-id))]
     (-> (ecs/disable-entity (:ecs ecs-id) (:ent-id ecs-id))
-        (update (ecs/component ecs :output-container ent-id) :current-size
-                #(+ % (:size storable)))
-        (update-in [:items (:type storable)]
-                   #(if % (conj % (:ent-id ecs-id)) #{(:ent-id ecs-id)})))))
+        (ecs/update-component :output-container ent-id #(update % :current-size
+                                                                (fn [cs] (+ cs (:size storable)))))
+        (ecs/update-component :output-container ent-id #(update-in % [:items :bullet]
+                                                                   (fn [ids] (if ids
+                                                                               (conj ids (:ent-id ecs-id))
+                                                                               #{(:ent-id ecs-id)}
+                                                                               ))))
+        )))
+
+(defn remove-recipe-inputs [ecs curr-recipe ent-id]
+  ;inputs is a map like {:ore #{:1 :2 :3}}
+  (loop [inputs (-> (ecs/component ecs :producer ent-id) :recipes curr-recipe :inputs)
+         input-container (ecs/component ecs :input-container ent-id)
+         ent-cs ecs]
+    (if (empty? inputs)
+      (ecs/replace-component ent-cs :input-container input-container ent-id)
+      (let [item-type (first (first inputs))
+            amount (-> inputs first second)]
+        (recur (dissoc inputs item-type)
+               (update-in input-container [:items item-type] #(loop [a amount
+                                                                     item-ids %]
+                                                               (if (zero? a)
+                                                                 item-ids
+                                                                 (recur (dec a)
+                                                                        (rest item-ids)))))
+               (ecs/remove-entity ent-cs amount))))))
 
 (defn- reset-curr-recipe [ecs producer ent-id]
   (ecs/replace-component ecs
@@ -76,6 +97,9 @@
 
 (defn- stop-animation [ecs ent-id]
   (ecs/update-component ecs :animation ent-id #(utils/stop-animation %)))
+
+(defn- zero-energy [ecs ent-id]
+  (ecs/update-component ecs :energy ent-id #(assoc % :current-amount 0)))
 
 (defn run [ent-id game]
   "recipe and duration should be set by something else (presumably from the UI)"
@@ -89,22 +113,24 @@
                               (ecs/component ecs :animation ent-id)
                               (ecs/component ecs :energy ent-id))
                       {:ecs     (-> (create-entity ecs (:current-recipe producer) ent-id)
-                                    (stop-animation ent-id)
+                                    (remove-recipe-inputs (:current-recipe producer) ent-id)
                                     (reset-curr-recipe producer ent-id)
-                                    (start-animation :produce ent-id))
+                                    (start-animation :produce ent-id)
+                                    (zero-energy ent-id))
                        :ent-map ent-map}
 
-                      ;if ready to start but not enough energy
-                      ;(waiting? producer
-                      ;          (:items (ecs/component ecs :input-container ent-id))
-                      ;          (ecs/component ecs :output-container ent-id)
-                      ;          (ecs/component ecs :animation ent-id))
-                      ;{:ecs ecs
-                      ; :ent-map ent-map}
-
-                      ;it's doing nothing, need to deplete energy to stay synced? no reason to stay synced
-                      :else
+                      ;if ready to start but not enough energy, wait for enough energy
+                      (waiting? producer
+                                (:items (ecs/component ecs :input-container ent-id))
+                                (ecs/component ecs :output-container ent-id)
+                                (ecs/component ecs :animation ent-id)
+                                (ecs/component ecs :energy ent-id))
                       {:ecs ecs
+                       :ent-map ent-map}
+
+                      ;it's doing nothing, deplete energy so it doesn't instantly make something
+                      :else
+                      {:ecs (zero-energy ecs ent-id)
                        :ent-map ent-map}
                       )]
     (-> (assoc game :ecs (:ecs ecs-ent-map))

@@ -136,7 +136,6 @@
 (defn producer [recipes]
   (ecs/create-component :producer
                         {:current-recipe nil
-                         :remaining-duration -1.0
                          ;recipes should look like
                          ;{:recipe-type {:inputs #{types}
                          ;               :output type
@@ -146,7 +145,8 @@
 (defn storable [type size]
   (ecs/create-component :storable
                         {:type type
-                         :size size}))
+                         :size size
+                         :amount 1}))
 
 (defn move-to [x-grid y-grid]
   "temp component"

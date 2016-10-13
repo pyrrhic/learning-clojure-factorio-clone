@@ -6,7 +6,7 @@
            (com.badlogic.gdx.scenes.scene2d Stage)
            (com.badlogic.gdx.utils.viewport ScreenViewport)
            (com.badlogic.gdx.physics.box2d World Box2DDebugRenderer)
-           (com.badlogic.gdx.math Vector2 Matrix4))
+           (com.badlogic.gdx.math Vector2 Matrix4 Vector3))
   (:require [proja.screens.game :as game]
             [proja.tile-map.core :as tmap]
             [proja.systems.render :as render]
@@ -23,11 +23,6 @@
 ;http://www.gamefromscratch.com/post/2015/02/03/LibGDX-Video-Tutorial-Scene2D-UI-Widgets-Layout-and-Skins.aspx
 ;http://www.badlogicgames.com/forum/viewtopic.php?f=11&t=8327
 
-;(def game {})
-
-;TODO need to fix the entitiy map. right now there is no way to distinguish from
-;TODO 7, 11 or 71, 1. Need to add leading zero's or something.
-
 (defn update-game! [func]
   "Expects a function with 1 parameter which will be the game map. The function must return the updated game map."
   (alter-var-root (var game/g) #(func %))
@@ -37,6 +32,26 @@
   (doto (Gdx/gl)
     (.glClearColor 1 1 1 1)
     (.glClear GL20/GL_COLOR_BUFFER_BIT)))
+
+(defn input-processor-clickable-entities []
+  (reify InputProcessor
+    (touchDown [this x y pointer button] true)
+    (keyDown [this keycode] true)
+    (keyUp [this keycode] true)
+    (keyTyped [this character] true)
+    (touchUp [this x y pointer button]
+      (when (nil? (:build-mode (:ui game/g)))
+        (let [
+              ;y (- (.getHeight Gdx/graphics) y)
+              world-v3 (.unproject (:camera game/g) (Vector3. x y 0))
+              key (utils/ent-map-key (utils/world->grid (.-x world-v3)) (utils/world->grid (.-y world-v3)))
+              building-id (-> (:entity-map game/g) (#(get % key)) :building-id)]
+          (when (and building-id (ecs/unsafe-component (:ecs game/g) :producer building-id))
+            (update-game! #(assoc-in % [:ui :factory-window :building-id] building-id)))))
+      true)
+    (touchDragged [this x y pointer] true)
+    (mouseMoved [this x y] true)
+    (scrolled [this amount] false)))
 
 (defn input-processor []
   (reify InputProcessor
@@ -69,7 +84,7 @@
       (alter-var-root (var game/g) #(assoc-in % [:inputs :mouse-click-y] (- (.getHeight Gdx/graphics) y)))
       (alter-var-root (var game/g) #(assoc-in % [:inputs :mouse-dragged-x] nil))
       (alter-var-root (var game/g) #(assoc-in % [:inputs :mouse-dragged-y] nil))
-      true)
+      false)
     (touchDragged [this x y pointer]
       (alter-var-root (var game/g) #(assoc-in % [:inputs :mouse-dragged-x] x))
       (alter-var-root (var game/g) #(assoc-in % [:inputs :mouse-dragged-y] (- (.getHeight Gdx/graphics) y)))
@@ -140,6 +155,7 @@
 
                                        (ecs/add-system (produce-good/create))
                                        )
+                              :ui nil
                               :energy-tick -1
                               :belt-update-orders nil
                               :loop-belt-update-orders nil))
@@ -225,9 +241,10 @@
                ^World (:box2d-world game)
                (:box2d-debug-matrix game))
 
-      (if (== 9000 (count old-frames))
-        (def old-frames (conj (vec (rest old-frames)) game))
-        (def old-frames (conj old-frames game)))
+      (when (not (:paused game))
+        (if (== 9000 (count old-frames))
+          (def old-frames (conj (vec (rest old-frames)) game))
+          (def old-frames (conj old-frames game))))
 
       (if (:paused game)
         (-> game
@@ -237,6 +254,7 @@
             (update-stage!))
         (-> game
             (ui/run)
+            (ui/update-factory-window)
             (ecs/run)
             (update-cam!)
             (update-stage!)
@@ -250,7 +268,11 @@
       ;(.setInputProcessor Gdx/input (input-processor))
       (update-game! #(init-game %))
       (ui/init game/g)
-      (.setInputProcessor Gdx/input (InputMultiplexer. (into-array InputProcessor (seq [(:stage game/g) (input-processor)]))))
+      (.setInputProcessor Gdx/input
+                          (InputMultiplexer. (into-array InputProcessor
+                                                         (seq [(:stage game/g)
+                                                               (input-processor)
+                                                               (input-processor-clickable-entities)]))))
       )
 
     (render [this delta]

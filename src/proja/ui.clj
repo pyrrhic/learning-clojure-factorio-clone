@@ -7,11 +7,12 @@
             [proja.systems.render :as render]
             [proja.belt-group :as belt-group])
   (:import (com.badlogic.gdx.scenes.scene2d.utils ChangeListener)
-           (com.badlogic.gdx.scenes.scene2d.ui TextButton Table)
+           (com.badlogic.gdx.scenes.scene2d.ui TextButton Table Label Dialog Window List)
            (com.badlogic.gdx.scenes.scene2d Stage)
            (com.badlogic.gdx.math Vector3)
            (com.badlogic.gdx.graphics.g2d SpriteBatch)
-           (com.badlogic.gdx Gdx)))
+           (com.badlogic.gdx Gdx)
+           (com.badlogic.gdx.utils Array)))
 
 (defn set-storage-ent-map [ent-map ecs ent-id]
   (let [transform (ecs/component ecs :transform ent-id)
@@ -223,6 +224,12 @@
                                                transform
                                                renderable))))
 
+(defn add-producer [game transform renderable]
+  (assoc game :entity-map (utils/add-producer (:entity-map game)
+                                              (utils/my-keyword (ecs/latest-ent-id (:ecs game)))
+                                              transform
+                                              renderable)))
+
 (defn placeable? [tile-x tile-y entity-map type]
   (let [k (utils/ent-map-key tile-x tile-y)
         v (get-in entity-map [k type])]
@@ -264,41 +271,6 @@
         game))
     game))
 
-;(if (or (-> game :inputs :mouse-dragged-x)
-;        (-> game :inputs :mouse-x))
-;  (let [{tile-align-x :x
-;         tile-align-y :y} (tile-aligned-mouse-belt (:inputs game) (:camera game))
-;        tex-cache (:tex-cache game)
-;        texture (:belt-1 tex-cache)
-;        transform (:data (c/transform tile-align-x
-;                                      tile-align-y
-;                                      (build-mode-rotation game)
-;                                      (/ (.getRegionWidth texture) 2)
-;                                      (/ (.getRegionWidth texture) 2)))
-;        renderable (:data (c/renderable texture))]
-;    (println tile-align-x tile-align-y)
-;    (if (not (utils/collides-with-a-building? (:entity-map game)
-;                                              transform
-;                                              renderable))
-;      (do (single-draw transform renderable (:batch game))
-;          (let [down-x (-> game :inputs :mouse-down-x)
-;                down-y (-> game :inputs :mouse-down-y)
-;                dragged-x (-> game :inputs :mouse-dragged-x)
-;                dragged-y (-> game :inputs :mouse-dragged-y)]
-;            (if (or (and down-x down-y) (and dragged-x dragged-y))
-;              (let [new-ecs (e/belt (:ecs game)
-;                                    tex-cache
-;                                    (utils/world->grid tile-align-x)
-;                                    (utils/world->grid tile-align-y)
-;                                    (build-mode-rotation game))]
-;                (-> (assoc game :ecs new-ecs)
-;                    (sync-animation (utils/my-keyword (ecs/latest-ent-id new-ecs)))
-;                    (add-building transform renderable)
-;                    (belt-group/ordered-belt-groups)))
-;              game)))
-;      game))
-;  game)
-
 (defn make-ore-patch [game]
   (if (or (-> game :inputs :mouse-dragged-x)
           (-> game :inputs :mouse-x))
@@ -333,33 +305,7 @@
                     ;(add-building transform renderable)
                     ;(belt-group/ordered-belt-groups)
                     ))
-              game)))
-      #_(if (not (utils/collides-with-a-building? (:entity-map game)
-                                                transform
-                                                renderable))
-        (do (single-draw transform renderable (:batch game))
-            (let [down-x (-> game :inputs :mouse-down-x)
-                  down-y (-> game :inputs :mouse-down-y)
-                  dragged-x (-> game :inputs :mouse-dragged-x)
-                  dragged-y (-> game :inputs :mouse-dragged-y)]
-              (if (or (and down-x down-y) (and dragged-x dragged-y))
-                (let [new-ecs (e/ore-patch (:ecs game)
-                                           tex-cache
-                                           (utils/world->grid tile-align-x)
-                                           (utils/world->grid tile-align-y)
-                                           (build-mode-rotation game))]
-                  (-> (assoc game :ecs new-ecs)
-                      (assoc-in [:entity-map
-                                 (utils/ent-map-key (utils/world->grid tile-align-x)
-                                                    (utils/world->grid tile-align-y))
-                                 :ore]
-                                #{(utils/my-keyword (ecs/latest-ent-id new-ecs))})
-                      ;(sync-animation (utils/my-keyword (ecs/latest-ent-id new-ecs)))
-                      ;(add-building transform renderable)
-                      ;(belt-group/ordered-belt-groups)
-                      ))
-                game)))
-        game))
+              game))))
     game))
 
 (defn sync-animation [game ent-id]
@@ -446,34 +392,80 @@
                       ))
                 game)))
         game))
-    game)
+    game))
 
-  #_(let [{tile-align-x :x
-         tile-align-y :y} (tile-aligned-mouse (:inputs game) (:camera game))
-        tex-cache (:tex-cache game)
-        transform (:data (c/transform tile-align-x
-                                      tile-align-y
-                                      (build-mode-rotation game)
-                                      16
-                                      (+ 16 32)))
-        renderable (:data (c/renderable (:arm-1 tex-cache)))]
-    (if (not (utils/collides-with-a-building? (:entity-map game)
-                                              transform
-                                              1 1))
-      (do (single-draw (update transform :y #(- % 32)) renderable (:batch game))
-          (let [click-x (-> game :inputs :mouse-click-x)
-                click-y (-> game :inputs :mouse-click-y)]
-            (if (and click-x click-y)
-              (let [new-ecs (e/arm (:ecs game)
-                                   tex-cache
-                                   (utils/world->grid tile-align-x)
-                                   (utils/world->grid tile-align-y)
-                                   (build-mode-rotation game))]
-                (-> (assoc game :ecs new-ecs)
-                    (add-building transform 0 0 1 1)
-                    (clear-clicks)))
-              game)))
-      (clear-clicks game))))
+(defn make-storage [game]
+  (if (or (-> game :inputs :mouse-dragged-x)
+          (-> game :inputs :mouse-x))
+    (let [{tile-align-x :x
+           tile-align-y :y} (tile-aligned-mouse-belt (:inputs game) (:camera game))
+          tex-cache (:tex-cache game)
+          texture (:storage tex-cache)
+          transform (:data (c/transform tile-align-x
+                                        tile-align-y
+                                        (build-mode-rotation game)
+                                        (/ (.getRegionWidth texture) 2)
+                                        (/ (.getRegionWidth texture) 2)))
+          renderable (:data (c/renderable texture))]
+      (if (not (utils/collides-with-a-building? (:entity-map game)
+                                                transform
+                                                renderable))
+        (do (single-draw transform renderable (:batch game))
+            (let [down-x (-> game :inputs :mouse-down-x)
+                  down-y (-> game :inputs :mouse-down-y)
+                  dragged-x (-> game :inputs :mouse-dragged-x)
+                  dragged-y (-> game :inputs :mouse-dragged-y)]
+              (if (or (and down-x down-y) (and dragged-x dragged-y))
+                (let [new-ecs (e/storage (:ecs game)
+                                         tex-cache
+                                         (utils/world->grid tile-align-x)
+                                         (utils/world->grid tile-align-y)
+                                         (build-mode-rotation game))]
+                  (-> (assoc game :ecs new-ecs)
+                      ;(sync-animation (utils/my-keyword (ecs/latest-ent-id new-ecs)))
+                      (add-building transform renderable)
+                      ;(belt-group/ordered-belt-groups)
+                      ))
+                game)))
+        game))
+    game))
+
+(defn make-factory [game]
+  (if (or (-> game :inputs :mouse-dragged-x)
+          (-> game :inputs :mouse-x))
+    (let [{tile-align-x :x
+           tile-align-y :y} (tile-aligned-mouse-belt (:inputs game) (:camera game))
+          tex-cache (:tex-cache game)
+          texture (:factory-1 tex-cache)
+          transform (:data (c/transform tile-align-x
+                                        tile-align-y
+                                        (build-mode-rotation game)
+                                        (/ (.getRegionWidth texture) 2)
+                                        (/ (.getRegionWidth texture) 2)))
+          renderable (:data (c/renderable texture))]
+      (if (not (utils/collides-with-a-building? (:entity-map game)
+                                                transform
+                                                renderable))
+        (do (single-draw transform renderable (:batch game))
+            (let [down-x (-> game :inputs :mouse-down-x)
+                  down-y (-> game :inputs :mouse-down-y)
+                  dragged-x (-> game :inputs :mouse-dragged-x)
+                  dragged-y (-> game :inputs :mouse-dragged-y)]
+              (if (or (and down-x down-y) (and dragged-x dragged-y))
+                (let [new-ecs (e/factory (:ecs game)
+                                         tex-cache
+                                         (utils/world->grid tile-align-x)
+                                         (utils/world->grid tile-align-y)
+                                         (build-mode-rotation game))]
+                  (-> (assoc game :ecs new-ecs)
+                      ;(sync-animation (utils/my-keyword (ecs/latest-ent-id new-ecs)))
+                      (add-building transform renderable)
+                      (add-producer transform renderable)
+                      ;(belt-group/ordered-belt-groups)
+                      ))
+                game)))
+        game))
+    game))
 
 (defn set-build-mode [game bm]
   (assoc-in game [:ui :build-mode] bm))
@@ -530,6 +522,8 @@
             :ore-miner (make-ore-miner g)
             :belt (make-belt g)
             :arm (make-arm g)
+            :storage (make-storage g)
+            :factory (make-factory g)
             nil g)
           (clear-most-inputs)
           ))))
@@ -545,25 +539,192 @@
     (.addListener btn listener)
     btn))
 
+(def factory-window nil)
+
 (defn init [game]
   (let [stage (:stage game)
         root-table (doto (Table.)
                      (.setFillParent true))]
-    (.setDebugAll stage true)
+    (.setDebugAll stage false)
     (.addActor stage root-table)
-    (let [buildings-table (doto (Table.)
-                            (.setHeight (float 100))
-                            (.setWidth (.getWidth stage)))
+    (let [buildings-table (Table.)
           skin (-> game :tex-cache :skin)]
-      (.bottom root-table)
+      (doto (.row root-table)
+        (.expandY))
+      (.add root-table (Label. "C" skin))
+
+      (doto (.row root-table)
+        (.expandY))
+      (.add root-table (let [window (Window. "Bitches N Hoes" skin)]
+                         (def factory-window window)
+
+                         (.debugCell window)
+
+                         (-> (.add window (Label. "Factory" skin))
+                             (.colspan 2))
+
+                         (doto window
+                           (.row)
+                           (.add (Label. "Current Recipe:" skin))
+                           (.add (Label. "nil" skin))
+                           (.row)
+                           (.add (Label. "Status:" skin))
+                           (.add (Label. "In Progress" skin))
+                           (.row)
+                           (.add (Label. "Inputs:" skin))
+                           (.add (doto (Table.)
+                                   (.add (Label. "Ore" skin))
+                                   (.add (Label. "10" skin))
+                                   ))
+                           (.row)
+                           (.add (Label. "Outputs:" skin))
+                           (.add (doto (Table.)
+                                   (.add (Label. "Ore" skin))
+                                   (.add (Label. "10" skin))
+                                   (.row)
+                                   (.add (Label. "Wood" skin))
+                                   (.add (Label. "5" skin))
+                                   (.row)
+                                   (.add (Label. "Rocks" skin))
+                                   (.add (Label. "75" skin))
+                                   (.row)
+                                   (.add (Label. "Mud" skin))
+                                   (.add (Label. "65" skin))
+                                   ))
+                           (.row)
+                           (.add (Label. "Recipes:" skin))
+                           (.add (doto (List. skin)
+                                   (.setItems (doto (make-array String 4)
+                                                (aset 0 "Bullets")
+                                                (aset 1 "Fake Thing 1")
+                                                (aset 2 "Fake Thing 2")
+                                                (aset 3 "Fake Thing 3")))))
+                           (.row)
+                           (-> (.add
+                                 (let [button (TextButton. "OK" skin)]
+                                   (.addListener button
+                                                 (proxy [ChangeListener] []
+                                                   (changed [event actor]
+                                                     ;(alter-var-root (var game/g)
+                                                     ;                #(assoc-in %
+                                                     ;                           [:ui :factory-window :building-id]
+                                                     ;                           nil))
+                                                     (alter-var-root (var game/g)
+                                                                     #(assoc-in %
+                                                                                [:ui :factory-window :close-window]
+                                                                                true)))))
+                                   button))
+                               (.colspan 2))
+                           (.setMovable false)
+                           )))
+
+      (doto (.row root-table)
+        (.expandY)
+        (.bottom))
       (.add root-table buildings-table)
       (doto buildings-table
         (.add (btn "Ore Patch" skin :ore-patch))
         (.add (btn "Ore Miner" skin :ore-miner))
         (.add (btn "Belt" skin :belt))
         (.add (btn "Arm" skin :arm))
+        (.add (btn "Storage" skin :storage))
+        (.add (btn "Factory" skin :factory))
         ))))
 
-;(ns proja.ui)
-;(require '[proja.screens.main-screen :as ms])
-;(require '[proja.screens.game :as g])
+(defn update-factory-window [game]
+  ;TODO for development only. remove later. every time reload of this page, it obviously goes nil.
+  (when (nil? factory-window)
+    (init game))
+
+  "factory-window should be a LibGDX Window object."
+  (if-let [building-id (-> game :ui :factory-window :building-id)]
+    (let [ecs (:ecs game)]
+      (do (.setVisible factory-window true)
+          (let [producer (ecs/component ecs :producer building-id)]
+            ;Current Recipe
+            (-> (.getChildren factory-window)
+                (.begin)
+                (aget 3)
+                (.setText (str (if (:current-recipe producer)
+                                 (:current-recipe producer)
+                                 "None"))))
+            ;Status
+            nil
+
+            ;Inputs
+            (let [input-container (ecs/component ecs :input-container building-id)
+                  ;{:type keyword, :amount number}
+                  inputs (map (fn [type-ids]
+                                {:type   (first type-ids)
+                                 :amount (->> (map #(:amount (ecs/component (:ecs game/g) :storable %))
+                                                   (second type-ids))
+                                              ((fn [amounts] (reduce + amounts))))})
+                              (:items input-container))]
+              ;type
+              (-> (.getChildren factory-window)
+                  (.begin)
+                  (aget 7)
+                  (.getChildren)
+                  (.begin)
+                  (aget 0)
+                  (.setText (str (:type (first inputs)))))
+              ;amount
+              (-> (.getChildren factory-window)
+                  (.begin)
+                  (aget 7)
+                  (.getChildren)
+                  (.begin)
+                  (aget 1)
+                  (.setText (str (:amount (first inputs))))))
+
+            ;Outputs
+            (let [input-container (ecs/component ecs :output-container building-id)
+                  ;{:type keyword, :amount number}
+                  inputs (map (fn [type-ids]
+                                {:type   (first type-ids)
+                                 :amount (->> (map #(:amount (ecs/component (:ecs game/g) :storable %))
+                                                   (second type-ids))
+                                              ((fn [amounts] (reduce + amounts))))})
+                              (:items input-container))]
+              ;type
+              (-> (.getChildren factory-window)
+                  (.begin)
+                  (aget 9)
+                  (.getChildren)
+                  (.begin)
+                  (aget 0)
+                  (.setText (str (:type (first inputs)))))
+              ;amount
+              (-> (.getChildren factory-window)
+                  (.begin)
+                  (aget 9)
+                  (.getChildren)
+                  (.begin)
+                  (aget 1)
+                  (.setText (str (:amount (first inputs))))))
+
+            ;Recipes
+            (-> (if (-> game :ui :factory-window :close-window)
+                  (let [selected-recipe (-> (.getChildren factory-window)
+                                            (.begin)
+                                            (aget 11)
+                                            (.getSelected)
+                                            (#(case %
+                                               "Bullets" :bullet)))
+                        producer (ecs/component ecs :producer building-id)]
+                    (if (= selected-recipe (:current-recipe producer))
+                      (-> (assoc-in game [:ui :factory-window :close-window] false)
+                          (assoc-in [:ui :factory-window :building-id] nil))
+                      (-> (assoc-in game [:ui :factory-window :close-window] false)
+                          (assoc-in [:ui :factory-window :building-id] nil)
+                          (assoc :ecs
+                                 (-> (ecs/replace-component ecs :producer
+                                                            (assoc producer :current-recipe selected-recipe)
+                                                            building-id)
+                                     (ecs/update-component :energy building-id
+                                                           #(assoc % :current-amount 0)))))))
+                  game)
+                (assoc-in [:ui :factory-window :close-window] false))
+            )))
+    (do (.setVisible factory-window false)
+        game)))

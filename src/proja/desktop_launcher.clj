@@ -18,8 +18,8 @@
 
 (defn app []
   (let [config (LwjglApplicationConfiguration.)]
-    (set! (.height config) 768)
-    (set! (.width config) 1366)
+    (set! (.height config) 800)
+    (set! (.width config) 900)
     (set! (.title config) "hey you")
     (set! (.-foregroundFPS config) 30)
     (set! (.-backgroundFPS config) 30)

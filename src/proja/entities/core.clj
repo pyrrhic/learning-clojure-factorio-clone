@@ -59,22 +59,6 @@
                   (ore-miner-y-output rotation)
                   )]))))
 
-;(defn- arm-output-em-key [x y rotation]
-;  (let [offsets (case rotation
-;                  0 {:x 0, :y 1}
-;                  90 {:x 1, :y 0}
-;                  180 {:x 0, :y -1}
-;                  270 {:x -1, :y 0})]
-;    (str (+ x (:x offsets)) (+ y (:y offsets)))))
-;
-;(defn- arm-input-em-key [x y rotation]
-;  (let [offsets (case rotation
-;                  0 {:x 0, :y -1}
-;                  90 {:x -1, :y 0}
-;                  180 {:x 0, :y 1}
-;                  270 {:x 1, :y 0})]
-;    (str (+ x (:x offsets)) (+ y (:y offsets)))))
-
 (defn- output-loc [x y rotation]
   (let [offsets (case rotation
                   0 {:x 0, :y 1}
@@ -134,10 +118,10 @@
                                                         true)
                                             )]))))
 
-(defn storage [ecs tex-cache x y]
+(defn storage [ecs tex-cache x y rotation]
   (let [texture (:storage tex-cache)]
     (:ecs (ecs/add-entity ecs [(c/transform (u/grid->world x) (u/grid->world y)
-                                            0
+                                            rotation
                                             (/ (.getRegionWidth texture) 2)
                                             (/ (.getRegionHeight texture) 2))
                                (c/renderable texture 1)
@@ -151,10 +135,10 @@
    (c/storable :bullet
                1)])
 
-(defn factory [ecs tex-cache x y]
+(defn factory [ecs tex-cache x y rotation]
   (let [texture (:factory-1 tex-cache)]
     (:ecs (ecs/add-entity ecs [(c/transform (u/grid->world x) (u/grid->world y)
-                                            0
+                                            rotation
                                             (/ (.getRegionWidth texture) 2)
                                             (/ (.getRegionHeight texture) 2))
                                (c/renderable texture 1)
