@@ -20,7 +20,7 @@
                                             (/ (.getRegionWidth texture) 2)
                                             (/ (.getRegionHeight texture) 2))
                                (c/renderable texture -2)
-                               (c/resource :iron-ore 1)]))))
+                               (c/resource :iron-ore 20)]))))
 
 (defn ore-miner-x-output [rotation]
   (case rotation
@@ -87,18 +87,12 @@
                                (c/energy 100)
                                (c/animation nil
                                             (c/frames-h :swing
-                                                        [(c/frame-h (:arm-1 tex-cache) 0.05)
-                                                         (c/frame-h (:arm-2 tex-cache) 0.05)
-                                                         (c/frame-h (:arm-3 tex-cache) 0.05)
-                                                         (c/frame-h (:arm-4 tex-cache) 0.05)
-                                                         (c/frame-h (:arm-5 tex-cache) 0.05)]
+                                                        [(c/frame-h (:arm-swing-1 tex-cache) 0.3)
+                                                         (c/frame-h (:arm-2 tex-cache) 0.3)]
                                                         false
                                                         :swing-back
-                                                        [(c/frame-h (:arm-5 tex-cache) 0.05)
-                                                         (c/frame-h (:arm-4 tex-cache) 0.05)
-                                                         (c/frame-h (:arm-3 tex-cache) 0.05)
-                                                         (c/frame-h (:arm-2 tex-cache) 0.05)
-                                                         (c/frame-h (:arm-1 tex-cache) 0.05)]
+                                                        [(c/frame-h (:arm-swingback-1 tex-cache) 0.3)
+                                                         (c/frame-h (:arm-1 tex-cache) 0.3)]
                                                         false))]))))
 
 (defn belt [ecs tex-cache x y rotation]
@@ -112,9 +106,11 @@
                                (c/energy 100)
                                (c/animation :move
                                             (c/frames-h :move
-                                                        [(c/frame-h (:belt-1 tex-cache) 0.05)
-                                                         (c/frame-h (:belt-2 tex-cache) 0.05)
-                                                         (c/frame-h (:belt-3 tex-cache) 0.05)]
+                                                        [(c/frame-h (:belt-1 tex-cache) 0.2)
+                                                         (c/frame-h (:belt-2 tex-cache) 0.2)
+                                                         (c/frame-h (:belt-3 tex-cache) 0.2)
+                                                         (c/frame-h (:belt-4 tex-cache) 0.2)
+                                                         (c/frame-h (:belt-5 tex-cache) 0.2)]
                                                         true)
                                             )]))))
 
@@ -127,13 +123,17 @@
                                (c/renderable texture 1)
                                (c/container)]))))
 
-(defn bullet [x y]
-  [(c/transform (u/grid->world x) (u/grid->world y)
-                0
-                0
-                0)
-   (c/storable :bullet
-               1)])
+;TODO thing is expecting a list of components back? not have it added to the ecs. not sure why.
+(defn bullets [ecs tex-cache x y]
+  (let [texture (:bullets tex-cache)]
+    (:ecs (ecs/add-entity ecs [(c/transform (u/grid->world x) (u/grid->world y)
+                                            0
+                                            (/ (.getRegionWidth texture) 2)
+                                            (/ (.getRegionHeight texture) 2))
+                               (c/renderable texture)
+                               (c/storable :bullets
+                                           5)
+                               ]))))
 
 (defn factory [ecs tex-cache x y rotation]
   (let [texture (:factory-1 tex-cache)]
@@ -146,13 +146,17 @@
                                (c/output-container)
                                (c/energy 100)
                                (c/producer
-                                 (c/recipes-h [:bullet (c/recipe-h {:ore 1}
-                                                                   {:bullet 1}
-                                                                   100
-                                                                   1)]))
+                                 (c/recipes-h [:bullets (c/recipe-h {:ore 1}
+                                                                    {:bullets 1}
+                                                                    100
+                                                                    1)]))
                                (c/animation nil
                                             (c/frames-h :produce
                                                         [(c/frame-h (:factory-1 tex-cache) 0.05)
                                                          (c/frame-h (:factory-2 tex-cache) 0.05)
-                                                         (c/frame-h (:factory-3 tex-cache) 0.05)]
+                                                         (c/frame-h (:factory-3 tex-cache) 0.05)
+                                                         (c/frame-h (:factory-4 tex-cache) 0.05)
+                                                         (c/frame-h (:factory-3 tex-cache) 0.05)
+                                                         (c/frame-h (:factory-2 tex-cache) 0.05)
+                                                         (c/frame-h (:factory-1 tex-cache) 0.05)]
                                                         false))]))))

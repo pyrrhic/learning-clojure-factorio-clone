@@ -123,7 +123,7 @@
           :stage (Stage. (ScreenViewport.))
           :tex-cache texture-cache
           :inputs {}
-          :tile-map (tmap/create-grid 25 19 texture-cache)
+          :tile-map (tmap/create-grid 25 30 texture-cache)
           ;Keys are strings of x grid + y grid, so (str (+ 1 1)).
           ;Values are Maps, keys are ent 'types' and values are Sets of ent id's
           :entity-map {}
@@ -242,7 +242,7 @@
                (:box2d-debug-matrix game))
 
       (when (not (:paused game))
-        (if (== 9000 (count old-frames))
+        (if (== 3600 (count old-frames))
           (def old-frames (conj (vec (rest old-frames)) game))
           (def old-frames (conj old-frames game))))
 
@@ -267,7 +267,7 @@
     (show [this]
       ;(.setInputProcessor Gdx/input (input-processor))
       (update-game! #(init-game %))
-      (ui/init game/g)
+      (ui/init! game/g)
       (.setInputProcessor Gdx/input
                           (InputMultiplexer. (into-array InputProcessor
                                                          (seq [(:stage game/g)

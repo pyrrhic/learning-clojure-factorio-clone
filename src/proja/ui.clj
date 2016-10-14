@@ -5,7 +5,8 @@
             [proja.entities.core :as e]
             [proja.screens.game :as game]
             [proja.systems.render :as render]
-            [proja.belt-group :as belt-group])
+            [proja.belt-group :as belt-group]
+            [proja.tile-map.core :as tmap])
   (:import (com.badlogic.gdx.scenes.scene2d.utils ChangeListener)
            (com.badlogic.gdx.scenes.scene2d.ui TextButton Table Label Dialog Window List)
            (com.badlogic.gdx.scenes.scene2d Stage)
@@ -194,16 +195,10 @@
       (assoc-in [:inputs :mouse-dragged-y] nil)))
 
 (defn tile-aligned-mouse [inputs camera]
-  (let [mx (-> inputs :mouse-x)
-        my (->> inputs :mouse-y (- (.getHeight Gdx/graphics)))
-        world-v3 (-> camera (.unproject (Vector3. mx my 0)))]
-    {:x (-> (quot (.-x world-v3) utils/tile-size) (* utils/tile-size))
-     :y (-> (quot (.-y world-v3) utils/tile-size) (* utils/tile-size))}))
-
-(defn tile-aligned-mouse-belt [inputs camera]
   (let [mx (if (-> inputs :mouse-dragged-x) (-> inputs :mouse-dragged-x) (-> inputs :mouse-x))
-        ;my (->> inputs :mouse-y (- (.getHeight Gdx/graphics)))
-        my (->> (if (-> inputs :mouse-dragged-y) (-> inputs :mouse-dragged-y) (-> inputs :mouse-y))
+        my (->> (if (-> inputs :mouse-dragged-y)
+                  (-> inputs :mouse-dragged-y)
+                  (-> inputs :mouse-y))
                 (- (.getHeight Gdx/graphics)))
         world-v3 (-> camera (.unproject (Vector3. mx my 0)))]
     {:x (-> (quot (.-x world-v3) utils/tile-size) (* utils/tile-size))
@@ -239,7 +234,7 @@
   (if (or (-> game :inputs :mouse-dragged-x)
           (-> game :inputs :mouse-x))
     (let [{tile-align-x :x
-           tile-align-y :y} (tile-aligned-mouse-belt (:inputs game) (:camera game))
+           tile-align-y :y} (tile-aligned-mouse (:inputs game) (:camera game))
           tex-cache (:tex-cache game)
           texture (:mining-building-1 tex-cache)
           transform (:data (c/transform tile-align-x
@@ -275,7 +270,7 @@
   (if (or (-> game :inputs :mouse-dragged-x)
           (-> game :inputs :mouse-x))
     (let [{tile-align-x :x
-           tile-align-y :y} (tile-aligned-mouse-belt (:inputs game) (:camera game))
+           tile-align-y :y} (tile-aligned-mouse (:inputs game) (:camera game))
           tex-cache (:tex-cache game)
           texture (:ore-patch tex-cache)
           transform (:data (c/transform tile-align-x
@@ -327,7 +322,7 @@
   (if (or (-> game :inputs :mouse-dragged-x)
           (-> game :inputs :mouse-x))
     (let [{tile-align-x :x
-           tile-align-y :y} (tile-aligned-mouse-belt (:inputs game) (:camera game))
+           tile-align-y :y} (tile-aligned-mouse (:inputs game) (:camera game))
           tex-cache (:tex-cache game)
           texture (:belt-1 tex-cache)
           transform (:data (c/transform tile-align-x
@@ -362,7 +357,7 @@
   (if (or (-> game :inputs :mouse-dragged-x)
           (-> game :inputs :mouse-x))
     (let [{tile-align-x :x
-           tile-align-y :y} (tile-aligned-mouse-belt (:inputs game) (:camera game))
+           tile-align-y :y} (tile-aligned-mouse (:inputs game) (:camera game))
           tex-cache (:tex-cache game)
           texture (:arm-1 tex-cache)
           transform (:data (c/transform tile-align-x
@@ -398,7 +393,7 @@
   (if (or (-> game :inputs :mouse-dragged-x)
           (-> game :inputs :mouse-x))
     (let [{tile-align-x :x
-           tile-align-y :y} (tile-aligned-mouse-belt (:inputs game) (:camera game))
+           tile-align-y :y} (tile-aligned-mouse (:inputs game) (:camera game))
           tex-cache (:tex-cache game)
           texture (:storage tex-cache)
           transform (:data (c/transform tile-align-x
@@ -434,7 +429,7 @@
   (if (or (-> game :inputs :mouse-dragged-x)
           (-> game :inputs :mouse-x))
     (let [{tile-align-x :x
-           tile-align-y :y} (tile-aligned-mouse-belt (:inputs game) (:camera game))
+           tile-align-y :y} (tile-aligned-mouse (:inputs game) (:camera game))
           tex-cache (:tex-cache game)
           texture (:factory-1 tex-cache)
           transform (:data (c/transform tile-align-x
@@ -463,6 +458,33 @@
                       (add-producer transform renderable)
                       ;(belt-group/ordered-belt-groups)
                       ))
+                game)))
+        game))
+    game))
+
+(defn make-rock-1 [game texture]
+  (if (or (-> game :inputs :mouse-dragged-x)
+          (-> game :inputs :mouse-x))
+    (let [{tile-align-x :x
+           tile-align-y :y} (tile-aligned-mouse (:inputs game) (:camera game))
+          transform (:data (c/transform tile-align-x
+                                        tile-align-y
+                                        (build-mode-rotation game)
+                                        (/ (.getRegionWidth texture) 2)
+                                        (/ (.getRegionWidth texture) 2)))
+          renderable (:data (c/renderable texture))
+          x (utils/world->grid tile-align-x)
+          y (utils/world->grid tile-align-y)]
+      (if (:passable (tmap/get-tile x y (:tile-map game)))
+        (do (single-draw transform renderable (:batch game))
+            (let [down-x (-> game :inputs :mouse-down-x)
+                  down-y (-> game :inputs :mouse-down-y)
+                  dragged-x (-> game :inputs :mouse-dragged-x)
+                  dragged-y (-> game :inputs :mouse-dragged-y)]
+              (if (or (and down-x down-y) (and dragged-x dragged-y))
+                (assoc game :tile-map (tmap/update-tile (:tile-map game) x y
+                                                        #(assoc % :passable false
+                                                                  :texture texture)))
                 game)))
         game))
     game))
@@ -524,6 +546,11 @@
             :arm (make-arm g)
             :storage (make-storage g)
             :factory (make-factory g)
+
+            :rock-1 (make-rock-1 g (:rock-1 (:tex-cache game)))
+            :rock-2 (make-rock-1 g (:rock-1 (:tex-cache game)))
+            :rock-3 (make-rock-1 g (:rock-1 (:tex-cache game)))
+
             nil g)
           (clear-most-inputs)
           ))))
@@ -541,17 +568,22 @@
 
 (def factory-window nil)
 
-(defn init [game]
+(defn init! [game]
   (let [stage (:stage game)
         root-table (doto (Table.)
                      (.setFillParent true))]
     (.setDebugAll stage false)
     (.addActor stage root-table)
     (let [buildings-table (Table.)
+          map-maker-table (Table.)
           skin (-> game :tex-cache :skin)]
       (doto (.row root-table)
-        (.expandY))
-      (.add root-table (Label. "C" skin))
+        (.expandY)
+        (.top))
+      (.add root-table map-maker-table)
+      ;(.add map-maker-table (btn "rock-1" skin :rock-1))
+      ;(.add map-maker-table (btn "rock-2" skin :rock-2))
+      ;(.add map-maker-table (btn "rock-3" skin :rock-3))
 
       (doto (.row root-table)
         (.expandY))
@@ -634,7 +666,7 @@
 (defn update-factory-window [game]
   ;TODO for development only. remove later. every time reload of this page, it obviously goes nil.
   (when (nil? factory-window)
-    (init game))
+    (init! game))
 
   "factory-window should be a LibGDX Window object."
   (if-let [building-id (-> game :ui :factory-window :building-id)]
@@ -710,7 +742,7 @@
                                             (aget 11)
                                             (.getSelected)
                                             (#(case %
-                                               "Bullets" :bullet)))
+                                               "Bullets" :bullets)))
                         producer (ecs/component ecs :producer building-id)]
                     (if (= selected-recipe (:current-recipe producer))
                       (-> (assoc-in game [:ui :factory-window :close-window] false)
@@ -728,3 +760,5 @@
             )))
     (do (.setVisible factory-window false)
         game)))
+
+

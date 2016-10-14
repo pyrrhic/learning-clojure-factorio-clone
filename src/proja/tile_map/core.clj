@@ -1,17 +1,18 @@
 (ns proja.tile-map.core
   (require [proja.utils :as utils])
-  (:import (com.badlogic.gdx.graphics.g2d SpriteBatch)))
+  (:import (com.badlogic.gdx.graphics.g2d SpriteBatch TextureAtlas$AtlasRegion)))
 
 (defn- create-tile
   [x y texture]
-  {:grid-x x 
-   :grid-y y 
-   :passable true
-   ;:parent nil
-   :move-cost 1
+  {;:parent nil
    ;:g nil
    ;:f nil
-   :texture texture})
+   :grid-x x
+   :grid-y y 
+   :passable true
+   :move-cost 1
+   :texture texture
+   })
 
 (defn- create-row [row-num num-of-columns tex-cache]
 	(loop [indx 0
@@ -20,7 +21,23 @@
 	       data
 	       (recur
 	         (inc indx)
-	         (conj data (create-tile row-num indx (:grass-1 tex-cache)))))))
+	         (conj data (create-tile row-num indx (let [i (rand-int 10)]
+                                                  (cond
+                                                    (<= i 1)
+                                                    (:grass-1 tex-cache)
+
+                                                    (and (>= i 2) (<= i 3))
+                                                    (:grass-2 tex-cache)
+
+                                                    (and (>= i 4) (<= i 5))
+                                                    (:grass-3 tex-cache)
+
+                                                    (and (>= i 6) (<= i 7))
+                                                    (:grass-4 tex-cache)
+
+                                                    (>= i 8)
+                                                    (:ground-1 tex-cache)
+                                                    ))))))))
 
 (defn create-grid [num-rows num-cols tex-cache]
   (vec (map #(create-row % num-cols tex-cache) (range 0 num-rows))))
@@ -41,6 +58,16 @@
         (< y (get-num-cols grid))
         (>= y 0))
     (nth (nth grid x) y)
+    nil))
+
+(defn update-tile [grid x y func]
+  {:pre [(some? x) (some? y)]}
+  (if (and
+        (< x (get-num-rows grid))
+        (>= x 0)
+        (< y (get-num-cols grid))
+        (>= y 0))
+    (update-in grid [x y] func)
     nil))
 
 (defn get-north-neighbor
@@ -98,7 +125,10 @@
 	     (doall (map 
 	             (fn [tile]
 	              (let [{x :grid-x, y :grid-y, t :texture} tile]
-                 (.draw ^SpriteBatch batch t (utils/grid->world x) (utils/grid->world y))))
+                  (.draw ^SpriteBatch batch
+                         ^TextureAtlas$AtlasRegion t
+                         ^float (utils/grid->world x)
+                         ^float (utils/grid->world y))))
 	             (first g)))
       (.end ^SpriteBatch batch)
 	     (recur (rest g))))))

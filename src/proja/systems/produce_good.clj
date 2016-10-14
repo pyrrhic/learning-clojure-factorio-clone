@@ -53,20 +53,20 @@
 (defn done-producing? [producer]
   (and (:current-recipe producer) (<= (:remaining-duration producer) 0)))
 
-(defn- create-entity [ecs recipe-type ent-id]
+(defn- create-entity [ecs tex-cache recipe-type ent-id]
   "Everything will be created at 0,0 because they're all disabled so who cares.
   Expectation is that they will be moved when re-enabled."
-  (let [components (case recipe-type
-                     :bullet (e/bullet 0 0))
-        ecs-id (ecs/add-entity ecs components)
-        storable (ecs/component (:ecs ecs-id) :storable (:ent-id ecs-id))]
-    (-> (ecs/disable-entity (:ecs ecs-id) (:ent-id ecs-id))
+  (let [new-ent-ecs (case recipe-type
+                      :bullets (e/bullets ecs tex-cache 0 0))
+        new-ent-id (utils/my-keyword (ecs/latest-ent-id new-ent-ecs))
+        storable (ecs/component new-ent-ecs :storable new-ent-id)]
+    (-> (ecs/disable-entity new-ent-ecs new-ent-id)
         (ecs/update-component :output-container ent-id #(update % :current-size
                                                                 (fn [cs] (+ cs (:size storable)))))
-        (ecs/update-component :output-container ent-id #(update-in % [:items :bullet]
+        (ecs/update-component :output-container ent-id #(update-in % [:items recipe-type]
                                                                    (fn [ids] (if ids
-                                                                               (conj ids (:ent-id ecs-id))
-                                                                               #{(:ent-id ecs-id)}
+                                                                               (conj ids new-ent-id)
+                                                                               #{new-ent-id}
                                                                                ))))
         )))
 
@@ -112,7 +112,7 @@
                               (ecs/component ecs :output-container ent-id)
                               (ecs/component ecs :animation ent-id)
                               (ecs/component ecs :energy ent-id))
-                      {:ecs     (-> (create-entity ecs (:current-recipe producer) ent-id)
+                      {:ecs     (-> (create-entity ecs (:tex-cache game) (:current-recipe producer) ent-id)
                                     (remove-recipe-inputs (:current-recipe producer) ent-id)
                                     (reset-curr-recipe producer ent-id)
                                     (start-animation :produce ent-id)

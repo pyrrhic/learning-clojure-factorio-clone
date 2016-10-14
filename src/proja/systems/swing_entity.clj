@@ -32,11 +32,6 @@
   (ecs/update-component ecs :animation ent-id
                         #(assoc % :current-animation animation-name)))
 
-;(defn set-state [ecs ent-id state-name]
-;  (ecs/update-component ecs :swingable
-;                        ent-id
-;                        #(assoc % :state state-name)))
-
 (defn remove-item-id [entity-map loc item-id]
   "Removes the item id from the entity map."
   (let [container-t (container-type entity-map loc)]
@@ -44,17 +39,6 @@
       :pickupable (assoc-in entity-map [loc container-t] nil)
       (update-in entity-map [loc container-t]
                  #(disj % item-id)))))
-
-;(defn- idle [ent-map ecs ent-id]
-;  (let [swingable (ecs/component ecs :swingable ent-id)
-;        item-id (get-item-id ent-map (:input-em-key swingable))]
-;    (if item-id
-;      {:ecs     (-> (pickup ecs ent-id item-id)
-;                    (start-animation ent-id :swing)
-;                    (set-state ent-id :swing))
-;       :ent-map (remove-item-id ent-map (:input-em-key swingable) item-id)}
-;      {:ecs     ecs
-;       :ent-map ent-map})))
 
 (defn can-drop? [ecs ent-map loc held-item-id container-ent-id]
   (let [container-t (container-type ent-map loc)]
@@ -100,36 +84,6 @@
      :ent-map (drop-item-ground ent-map loc held-item-id)}
     {:ecs (drop-item-container ecs ent-map loc held-item-id ent-id)
      :ent-map ent-map}))
-
-;(defn- swing [ent-map ecs ent-id]
-;  (let [animation (ecs/component ecs :animation ent-id)]
-;    (if (:current-animation animation)
-;      {:ecs ecs
-;       :ent-map ent-map}
-;      (let [swingable (ecs/component ecs :swingable ent-id)]
-;        (if (and (not (:current-animation animation))
-;                 (can-drop? ecs ent-map (:output-em-key swingable)
-;                            (:held-item swingable)
-;                            (get-in ent-map [(:output-em-key swingable) :container-id])))
-;          (drop-item ecs ent-id ent-map (:output-em-key swingable) (:held-item swingable))
-;          {:ecs ecs
-;           :ent-map ent-map})))))
-;
-;(defn- swing-back [ent-map ecs ent-id]
-;  (if (:current-animation (ecs/component ecs :animation ent-id))
-;    {:ecs ecs
-;     :ent-map ent-map}
-;    {:ecs (ecs/update-component ecs :swingable ent-id #(assoc % :state :idle))
-;     :ent-map ent-map}))
-
-;(defn run [ent-id game]
-;  (let [ecs (:ecs game)
-;        updtd-ecs-em (case (:state (ecs/component ecs :swingable ent-id))
-;                       :idle (idle (:entity-map game) ecs ent-id)
-;                       :swing (swing (:entity-map game) ecs ent-id)
-;                       :swing-back (swing-back (:entity-map game) ecs ent-id))]
-;    (assoc game :ecs (:ecs updtd-ecs-em)
-;                :entity-map (:ent-map updtd-ecs-em))))
 
 (defn return-data [game success?]
   {:game game
@@ -209,20 +163,4 @@
   {:function   run
    :predicates {:and #{:swingable}}})
 
-;(ns proja.screens.main-screen)
-;(require '[proja.entities.core :as e])
-;(do
-;  (update-game! #(assoc % :ecs (e/ore-miner (:ecs game/g) (:tex-cache game/g) 1 1)))
-;  (update-game! #(assoc % :ecs (e/ore-patch (:ecs game/g) (:tex-cache game/g) 1 1)))
-;  (update-game! #(assoc % :ecs (e/ore-patch (:ecs game/g) (:tex-cache game/g) 2 1)))
-;  (update-game! #(assoc-in % [:entity-map "11" :ore] #{:2}))
-;  (update-game! #(assoc-in % [:entity-map "21" :ore] #{:3}))
-;  (update-game! #(assoc % :ecs (e/arm (:ecs game/g) (:tex-cache game/g) 2 5 0)))
-;
-;
-;  (update-game! #(assoc % :ecs (e/factory (:ecs game/g) (:tex-cache game/g) 2 6)))
-;  (update-game! #(assoc % :entity-map
-;                          (utils/add-producer (:entity-map game/g) :5
-;                                              (ecs/component (:ecs game/g) :transform :5)
-;                                              (ecs/component (:ecs game/g) :renderable :5)))))
 

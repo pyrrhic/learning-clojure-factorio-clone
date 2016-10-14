@@ -48,11 +48,11 @@
                             (get ecs :systems))))
 
 (defn component [ecs c-type ent-id]
-  {:post [(test/is (cond
+  #_{:post [(test/is (cond
                      (= :disabled c-type) true
                      (nil? %) false
                      :else true)
-                   (str "c-type = "  c-type " ent-id = " ent-id))]}
+                   (str "c-type = " c-type " ent-id = " ent-id))]}
   (get-in ecs [:ent-comps ent-id c-type]))
 
 (defn unsafe-component [ecs c-type ent-id]
