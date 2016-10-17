@@ -23,19 +23,19 @@
 	         (inc indx)
 	         (conj data (create-tile row-num indx (let [i (rand-int 10)]
                                                   (cond
-                                                    (<= i 1)
+                                                    (or (== i 0) (== i 1))
                                                     (:grass-1 tex-cache)
 
-                                                    (and (>= i 2) (<= i 3))
+                                                    (== i 2)
                                                     (:grass-2 tex-cache)
 
-                                                    (and (>= i 4) (<= i 5))
+                                                    (== i 3)
                                                     (:grass-3 tex-cache)
 
-                                                    (and (>= i 6) (<= i 7))
+                                                    (== i 4)
                                                     (:grass-4 tex-cache)
 
-                                                    (>= i 8)
+                                                    (>= i 5)
                                                     (:ground-1 tex-cache)
                                                     ))))))))
 

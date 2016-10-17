@@ -4,11 +4,6 @@
             [proja.utils :as utils])
   (:import (com.badlogic.gdx.graphics.g2d TextureRegion)))
 
-;TODO these things
-;logic to update the ent-map when an ore patch is depleted.
-;logic to delete ore patch entity when it's depleted.
-;logic to update entioty map when entity is created.
-
 (defn tile-locations [ecs x y width height ent-map]
   (for [x (range x (+ x width))
         y (range y (+ y height))

@@ -1,18 +1,18 @@
 (ns proja.systems.render
   (:import (com.badlogic.gdx.graphics.g2d TextureRegion SpriteBatch)))
 
-(defn draw [transform renderable batch]                           ;might need anything. camera, batch, map, later things.
-  (let [tex-region (:texture renderable)]
-    (.draw ^SpriteBatch batch ^TextureRegion tex-region
+(defn draw [transform renderable ^SpriteBatch batch]                           ;might need anything. camera, batch, map, later things.
+  (let [^TextureRegion tex-region (:texture renderable)]
+    (.draw batch tex-region
            (:x transform) (:y transform)
            (:origin-x transform) (:origin-y transform)
-           (float (.getRegionWidth ^TextureRegion tex-region)) (float (.getRegionHeight ^TextureRegion tex-region))
+           (float (.getRegionWidth tex-region)) (float (.getRegionHeight tex-region))
            (float (:scale-x renderable)) (float (:scale-y renderable))
            ;libgdx draws rotation counter clock wise, and um, i want to keep my code clock wise because it  makes more sense to me.
            (* -1.0 (float (:rotation transform))))))
 
-(defn draw-all [ecs batch]
-  (.begin ^SpriteBatch batch)
+(defn draw-all [ecs ^SpriteBatch batch]
+  (.begin batch)
   (loop [qualified-ents (->> (filter #(and (:renderable %) (not (:disabled %))) (-> ecs :ent-comps (vals)))
                              (sort-by #(get-in % [:renderable :z])))]
     (if (empty? qualified-ents)
@@ -20,7 +20,7 @@
       (let [e (first qualified-ents)]
         (draw (:transform e) (:renderable e) batch)
         (recur (rest qualified-ents)))))
-  (.end ^SpriteBatch batch))
+  (.end batch))
 
 ;(defn run [ent-id game]                           ;might need anything. camera, batch, map, later things.
 ;  (let [entity-cs (:ecs game)

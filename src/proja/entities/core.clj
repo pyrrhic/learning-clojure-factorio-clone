@@ -20,7 +20,7 @@
                                             (/ (.getRegionWidth texture) 2)
                                             (/ (.getRegionHeight texture) 2))
                                (c/renderable texture -2)
-                               (c/resource :iron-ore 20)]))))
+                               (c/resource :iron-ore 100)]))))
 
 (defn ore-miner-x-output [rotation]
   (case rotation
@@ -61,18 +61,18 @@
 
 (defn- output-loc [x y rotation]
   (let [offsets (case rotation
-                  0 {:x 0, :y 1}
-                  90 {:x 1, :y 0}
-                  180 {:x 0, :y -1}
-                  270 {:x -1, :y 0})]
-    {:x (+ x (:x offsets)), :y (+ y (:y offsets))}))
-
-(defn- input-loc [x y rotation]
-  (let [offsets (case rotation
                   0 {:x 0, :y -1}
                   90 {:x -1, :y 0}
                   180 {:x 0, :y 1}
                   270 {:x 1, :y 0})]
+    {:x (+ x (:x offsets)), :y (+ y (:y offsets))}))
+
+(defn- input-loc [x y rotation]
+  (let [offsets (case rotation
+                  0 {:x 0, :y 1}
+                  90 {:x 1, :y 0}
+                  180 {:x 0, :y -1}
+                  270 {:x -1, :y 0})]
     {:x (+ x (:x offsets)), :y (+ y (:y offsets))}))
 
 (defn arm [ecs tex-cache x y rotation]

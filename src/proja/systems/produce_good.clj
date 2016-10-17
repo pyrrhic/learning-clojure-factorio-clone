@@ -89,7 +89,8 @@
                (ecs/remove-entity ent-cs amount))))))
 
 (defn- reset-curr-recipe [ecs producer ent-id]
-  (ecs/replace-component ecs
+  ecs
+  #_(ecs/replace-component ecs
                          :producer
                          (-> (assoc producer :current-recipe nil)
                              (assoc :remaining-duration 0))

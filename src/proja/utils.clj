@@ -41,12 +41,12 @@
                   y (range y (+ y height))
                   :let [k (ent-map-key (int x) (int y))]]
               (fn [ent-map] (update ent-map k #(if %
-                                                (assoc % :input-container #{}
-                                                         :output-container #{}
-                                                         :container-id ent-id)
-                                                {:input-container  #{},
-                                                 :output-container #{}
-                                                 :container-id ent-id}))))]
+                                                (assoc % :input-container ent-id
+                                                         :output-container ent-id
+                                                         :container ent-id)
+                                                {:input-container  ent-id,
+                                                 :output-container ent-id
+                                                 :container ent-id}))))]
     (loop [funcs fns
            e-map ent-map]
       (if (empty? funcs)
@@ -63,10 +63,8 @@
                   y (range y (+ y height))
                   :let [k (ent-map-key (int x) (int y))]]
               (fn [ent-map] (update ent-map k #(if %
-                                                (assoc % :container #{}
-                                                         :container-id ent-id)
-                                                {:container  #{}
-                                                 :container-id ent-id}))))]
+                                                (assoc % :container ent-id)
+                                                {:container ent-id}))))]
     (loop [funcs fns
            e-map ent-map]
       (if (empty? funcs)

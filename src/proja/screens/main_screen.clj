@@ -137,9 +137,10 @@
                    (ecs/add-system (animate/create))
                    (ecs/add-system (energy/create))
 
-                   (ecs/add-system (swing-entity/create))
-                   (ecs/add-system (belt-move/create))
                    (ecs/add-system (mine-ore/create))
+                   (ecs/add-system (swing-entity/create))
+
+                   (ecs/add-system (belt-move/create))
 
                    (ecs/add-system (produce-good/create))
                    )))))
@@ -149,9 +150,10 @@
                                        (ecs/add-system (animate/create))
                                        (ecs/add-system (energy/create))
 
-                                       (ecs/add-system (swing-entity/create))
-                                       (ecs/add-system (belt-move/create))
                                        (ecs/add-system (mine-ore/create))
+                                       (ecs/add-system (swing-entity/create))
+
+                                       (ecs/add-system (belt-move/create))
 
                                        (ecs/add-system (produce-good/create))
                                        )
