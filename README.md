@@ -10,7 +10,8 @@ Read more about entity component systems and created a faster one. The basic ide
 
 This is an improvement over the old method, which was basically to pass all of the entities to every system function and filter out the relevant entities on every frame.
 
-My programmer art, in gif form : http://imgur.com/a/IhwT6
+My programmer art, in gif form : 
+![alt text](http://i.imgur.com/8wsZS6U.gif "Oops.")
 
 To describe the picture: 
 
